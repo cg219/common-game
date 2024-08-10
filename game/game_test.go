@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -15,17 +14,16 @@ func TestCreateGame(t *testing.T) {
     if game == nil {
         t.Fatalf("No Game Created. Expected Game.")
     }
-
-    fmt.Printf("Game: %v", game)
 }
 
 func TestGameWordSelection(t *testing.T) {
     tests := []struct {
             words [4]string
             value bool
+            catValue string
     } {
-        { [4]string{"Monday", "Tuesday", "Thursday", "Sunday"}, true },
-        { [4]string{"Monday", "Friday", "Thursday", "Sunday"}, false },
+        { [4]string{"Monday", "Tuesday", "Thursday", "Sunday"}, true, "Days of the Week"},
+        { [4]string{"Monday", "Friday", "Thursday", "Sunday"}, false , ""},
     }
 
     game, err := Create()
@@ -35,10 +33,16 @@ func TestGameWordSelection(t *testing.T) {
     }
 
     for _, s := range tests {
-        r := game.CheckSelection(s.words)
+        r, cat := game.CheckSelection(s.words)
 
         if s.value != r {
             t.Fatalf("Words: %s - expected %t; got %t", s.words, s.value, r)
+        }
+
+        if cat != nil {
+            if s.catValue != cat.Name {
+                t.Fatalf("Slected Category Incorrect. expected %s; got %s", s.catValue, cat.Name)
+            }
         }
     }
 }
