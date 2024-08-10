@@ -16,7 +16,7 @@ func TestCreateGame(t *testing.T) {
     }
 }
 
-func TestGameWordSelection(t *testing.T) {
+func TestWordSelection(t *testing.T) {
     tests := []struct {
             words [4]string
             value bool
@@ -32,7 +32,7 @@ func TestGameWordSelection(t *testing.T) {
         t.Fatalf("Error occured during game creation: %v", err)
     }
 
-    for _, s := range tests {
+    for i, s := range tests {
         r, cat := game.CheckSelection(s.words)
 
         if s.value != r {
@@ -43,6 +43,10 @@ func TestGameWordSelection(t *testing.T) {
             if s.catValue != cat.Name {
                 t.Fatalf("Slected Category Incorrect. expected %s; got %s", s.catValue, cat.Name)
             }
+        }
+
+        if i + 1 != game.TurnsTaken {
+            t.Fatalf("Unexpected Turns amount. expected %d; got %d", i + 1, game.TurnsTaken)
         }
     }
 }
