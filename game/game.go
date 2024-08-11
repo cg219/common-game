@@ -1,18 +1,10 @@
 package game
 
 import (
-	"strings"
+    "strings"
 )
 
 type Status int
-
-const (
-    Win Status = iota
-    Lose
-    Playing
-    Broken
-    None
-)
 
 type Game struct {
     TurnsTaken int
@@ -25,6 +17,18 @@ type Category struct {
     Name string
     Words [4]string
 }
+
+type Move struct {
+    words [4]string
+}
+
+const (
+    Win Status = iota
+    Lose
+    Playing
+    Broken
+    None
+)
 
 func Create() (*Game, error) {
     return newGame(), nil
@@ -59,6 +63,29 @@ func newGame() *Game {
         Subjects: subjects,
     }
 }
+
+func loop(input <-chan Move, output chan<- Status, g *Game) {
+    for move := range input {
+        g.CheckSelection(move.words)
+        s := g.CheckStatus()
+
+        output <- s
+    }
+
+    close(output)
+}
+
+// Start Status Interface
+
+func (s Status) String() string {
+    return []string{"Win", "Lose", "Playing", "Broken", "None"}[s]
+}
+
+func (s Status) Enum() int {
+    return int(s)
+}
+
+// --End Status Interface
 
 // Start Game Interface
 
@@ -103,6 +130,13 @@ func (g *Game) Reset() {
     g.CompletedSubjects = make([]int, 0)
 }
 
+func (g *Game) Run(ch <-chan Move) <-chan Status {
+    statusCh := make(chan Status)
+
+    go loop(ch, statusCh, g)
+
+    return statusCh
+}
 
 func (g *Game) CheckSubjectStatus(s int) bool {
     for _, cs := range g.CompletedSubjects {
