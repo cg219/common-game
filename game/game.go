@@ -1,15 +1,10 @@
 package game
 
-import "strings"
+import (
+	"strings"
+)
 
 type Status int
-
-const (
-    subject1 = iota
-    sujbect2
-    subject3
-    subject4
-)
 
 const (
     Win Status = iota
@@ -38,22 +33,22 @@ func Create() (*Game, error) {
 func newGame() *Game {
     var subjects [4]Category
 
-    subjects[subject1] = Category{
+    subjects[0] = Category{
         Name: "Days of the Week",
         Words: [4]string{"Monday", "Tuesday", "Thursday", "Sunday"},
     }
 
-    subjects[sujbect2] = Category{
+    subjects[1] = Category{
         Name: "Through the Air",
         Words: [4]string{"Leap", "Soar", "Float", "Fly"},
     }
 
-    subjects[subject3] = Category{
+    subjects[2] = Category{
         Name: "Races",
         Words: [4]string{"Black", "White", "Hispanic", "Indian"},
     }
 
-    subjects[subject4] = Category{
+    subjects[3] = Category{
         Name: "Colors",
         Words: [4]string{"Brown", "Red", "Blue", "Orange"},
     }
@@ -81,7 +76,6 @@ func (g *Game) CheckSelection(words [4]string) (bool, *Category) {
                 if strings.EqualFold(cw, ccw) {
                     if cat == -1 {
                         cat = csi
-                        g.CompletedSubjects = append(g.CompletedSubjects, csi)
                         matches++
                         continue
                     }
@@ -90,7 +84,6 @@ func (g *Game) CheckSelection(words [4]string) (bool, *Category) {
                         return false, nil
                     }
 
-                    g.CompletedSubjects = append(g.CompletedSubjects, csi)
                     matches++
                 }
             }
@@ -98,10 +91,26 @@ func (g *Game) CheckSelection(words [4]string) (bool, *Category) {
     }
 
     if matches == 4 {
+        g.CompletedSubjects = append(g.CompletedSubjects, cat)
         return true, &g.Subjects[cat]
     }
 
     return false, nil
+}
+
+func (g *Game) Reset() {
+    g.TurnsTaken = 0
+    g.CompletedSubjects = make([]int, 0)
+}
+
+
+func (g *Game) CheckSubjectStatus(s int) bool {
+    for _, cs := range g.CompletedSubjects {
+        if cs == s {
+            return true
+        }
+    }
+    return false
 }
 
 func (g *Game) CheckStatus() Status {

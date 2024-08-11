@@ -4,49 +4,60 @@ import (
 	"testing"
 )
 
-func TestCreateGame(t *testing.T) {
+func TestGame(t *testing.T) {
     game, err := Create()
 
     if err != nil {
-        t.Fatalf("Error occured during game creation: %v", err)
+        t.Fatalf("error: %s", err)
     }
 
     if game == nil {
-        t.Fatalf("No Game Created. Expected Game.")
+        t.Fatal("expected Game, got nil")
     }
-}
 
-func TestWordSelection(t *testing.T) {
-    tests := []struct {
+   t.Run("Words Selection", func(t *testing.T) {
+        wordSelection := []struct {
             words [4]string
             value bool
             catValue string
-    } {
-        { [4]string{"Monday", "Tuesday", "Thursday", "Sunday"}, true, "Days of the Week"},
-        { [4]string{"Monday", "Friday", "Thursday", "Sunday"}, false , ""},
-    }
-
-    game, err := Create()
-
-    if err != nil {
-        t.Fatalf("Error occured during game creation: %v", err)
-    }
-
-    for i, s := range tests {
-        r, cat := game.CheckSelection(s.words)
-
-        if s.value != r {
-            t.Fatalf("Words: %s - expected %t; got %t", s.words, s.value, r)
+        } {
+            { [4]string{"Monday", "Tuesday", "Thursday", "Sunday"}, true, "Days of the Week"},
+            { [4]string{"Monday", "Friday", "Thursday", "Sunday"}, false, ""},
         }
 
-        if cat != nil {
-            if s.catValue != cat.Name {
-                t.Fatalf("Slected Category Incorrect. expected %s; got %s", s.catValue, cat.Name)
+        for i, s := range wordSelection {
+            r, cat := game.CheckSelection(s.words)
+
+            if s.value != r {
+                t.Fatalf("\nWords: %s\nexpected %t; got %t", s.words, s.value, r)
+            }
+
+            if cat != nil {
+                if s.catValue != cat.Name {
+                    t.Fatalf("Category: expected %s; got %s", s.catValue, cat.Name)
+                }
+            }
+
+            if i + 1 != game.TurnsTaken {
+                t.Fatalf("Turn: expected %d; got %d", i + 1, game.TurnsTaken)
             }
         }
 
-        if i + 1 != game.TurnsTaken {
-            t.Fatalf("Unexpected Turns amount. expected %d; got %d", i + 1, game.TurnsTaken)
+    }) 
+
+    t.Run("Reset", func(t *testing.T) {
+        game.Reset()
+
+        if game.TurnsTaken != 0 {
+            t.Fatalf("Turns: expected %d; got %d", 0, game.TurnsTaken)
         }
-    }
+
+        if len(game.CompletedSubjects) > 0 {
+            t.Fatalf("Completed Subjects: expected %d; got %d", 0, len(game.CompletedSubjects))
+        }
+    })
+
+    t.Run("Check Status", func (t *testing.T) {
+
+    })
 }
