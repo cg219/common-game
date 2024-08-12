@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -32,6 +33,30 @@ const (
 
 func Create() (*Game, error) {
     return newGame(), nil
+}
+
+func Start(g *Game) {
+    var game *Game
+
+    if g == nil {
+        var err error
+
+        g, err = Create()
+
+        if err != nil {
+            panic(err)
+        }
+    }
+
+    game = g
+
+    game.Reset()
+    input := make(chan Move)
+    output := game.Run(input)
+
+    for s := range output {
+        fmt.Println(s)
+    }
 }
 
 func newGame() *Game {
