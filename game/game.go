@@ -165,6 +165,7 @@ func (g *Game) CheckStatus() Status {
 
         if v {
             if g.WrongTurns == g.MaxTurns {
+                g.WrongTurns++
                 return Lose
             }
 
@@ -177,6 +178,7 @@ func (g *Game) CheckStatus() Status {
     }
 
     if g.WrongTurns == g.MaxTurns {
+        g.WrongTurns++
         return Lose
     }
 
