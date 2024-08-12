@@ -1,13 +1,13 @@
 package game
 
 import (
-    "strings"
+	"strings"
 )
 
 type Status int
 
 type Game struct {
-    TurnsTaken int
+    WrongTurns int
     MaxTurns int
     Subjects [4]Category
     CompletedSubjects []int
@@ -58,7 +58,7 @@ func newGame() *Game {
     }
 
     return &Game{
-        TurnsTaken: 0,
+        WrongTurns: 0,
         MaxTurns: 4,
         Subjects: subjects,
     }
@@ -94,7 +94,6 @@ func (g *Game) CheckSelection(words [4]string) (bool, *Category) {
     matches := 0
 
     defer func() {
-        g.TurnsTaken++
     }()
 
     for _, cw := range words { // cw = Current Word
@@ -108,6 +107,7 @@ func (g *Game) CheckSelection(words [4]string) (bool, *Category) {
                     }
 
                     if cat != csi {
+                        g.WrongTurns++
                         return false, nil
                     }
 
@@ -122,11 +122,12 @@ func (g *Game) CheckSelection(words [4]string) (bool, *Category) {
         return true, &g.Subjects[cat]
     }
 
+    g.WrongTurns++
     return false, nil
 }
 
 func (g *Game) Reset() {
-    g.TurnsTaken = 0
+    g.WrongTurns = 0
     g.CompletedSubjects = make([]int, 0)
 }
 
@@ -150,32 +151,36 @@ func (g *Game) CheckSubjectStatus(s int) bool {
 func (g *Game) CheckStatus() Status {
     lookup := make(map[int]bool)
 
-    if g.TurnsTaken < g.MaxTurns {
-        return Playing
-    }
-
-    if g.TurnsTaken == g.MaxTurns {
-        for _, cs := range g.CompletedSubjects {
-            v, ok := lookup[cs]
-
-            if !ok {
-                lookup[cs] = true
-                continue
-            }
-
-            if v {
-                return Lose
-            }
-        }    
-
-        return Win
-    }
-
-    if g.TurnsTaken > g.MaxTurns {
+    if g.WrongTurns > g.MaxTurns {
         return Broken
     }
 
-    return None
+    for _, cs := range g.CompletedSubjects {
+        v, ok := lookup[cs]
+
+        if !ok {
+            lookup[cs] = true
+            continue
+        }
+
+        if v {
+            if g.WrongTurns == g.MaxTurns {
+                return Lose
+            }
+
+            return Playing
+        }
+    } 
+
+    if len(lookup) == 4 {
+        return Win
+    }
+
+    if g.WrongTurns == g.MaxTurns {
+        return Lose
+    }
+
+    return Playing
 }
 
 // --End Game Interface

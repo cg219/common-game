@@ -1,7 +1,7 @@
 package game
 
 import (
-    "testing"
+	"testing"
 )
 
 func TestGame(t *testing.T) {
@@ -31,13 +31,14 @@ func TestGame(t *testing.T) {
         wordSelection := []struct {
             words [4]string
             value bool
+            turns int
             catValue string
         } {
-            { [4]string{"Monday", "Tuesday", "Thursday", "Sunday"}, true, "Days of the Week"},
-            { [4]string{"Monday", "Friday", "Thursday", "Sunday"}, false, ""},
+            { [4]string{"Monday", "Tuesday", "Thursday", "Sunday"}, true, 0, "Days of the Week"},
+            { [4]string{"Monday", "Friday", "Thursday", "Sunday"}, false, 1, ""},
         }
 
-        for i, s := range wordSelection {
+        for _, s := range wordSelection {
             r, cat := game.CheckSelection(s.words)
 
             if s.value != r {
@@ -50,8 +51,8 @@ func TestGame(t *testing.T) {
                 }
             }
 
-            if i + 1 != game.TurnsTaken {
-                t.Fatalf("Turn: expected %d; got %d", i + 1, game.TurnsTaken)
+            if s.turns != game.WrongTurns {
+                t.Fatalf("Turn: expected %d; got %d", s.turns, game.WrongTurns)
             }
         }
 
@@ -60,8 +61,8 @@ func TestGame(t *testing.T) {
     t.Run("Reset", func(t *testing.T) {
         game.Reset()
 
-        if game.TurnsTaken != 0 {
-            t.Fatalf("Turns: expected %d; got %d", 0, game.TurnsTaken)
+        if game.WrongTurns != 0 {
+            t.Fatalf("Turns: expected %d; got %d", 0, game.WrongTurns)
         }
 
         if len(game.CompletedSubjects) > 0 {
@@ -74,6 +75,8 @@ func TestGame(t *testing.T) {
     })
 
     t.Run("Simulate Games", func(t *testing.T) {
+
+
         tests := []struct {
             moves []Move
             outcomes []Status
@@ -81,7 +84,7 @@ func TestGame(t *testing.T) {
         } {
             {
                 moves: []Move{
-                    newMove("Monday", "Tuesday", "Thurdday", "Sunday"),
+                    newMove("Monday", "Tuesday", "Thursday", "Sunday"),
                     newMove("Leap", "Soar", "Float", "Fly"),
                     newMove("Black", "White", "Hispanic", "Indian"),
                     newMove("Brown", "Red", "Blue", "Orange"),
@@ -94,9 +97,31 @@ func TestGame(t *testing.T) {
                 },
                 final: Win,
             },
+            {
+                moves: []Move{
+                    newMove("Monday", "Tuesday", "Thursday", "Sunday"),
+                    newMove("Leap", "Soar", "Float", "Fly"),
+                    newMove("Black", "Soar", "Hispanic", "Indian"),
+                    newMove("Black", "White", "Blue", "Indian"),
+                    newMove("Brown", "Red", "Blue", "Orange"),
+                    newMove("Black", "Red", "Blue", "Orange"),
+                    newMove("Black", "Hispanic", "Blue", "Orange"),
+                },
+                outcomes: []Status{
+                    Playing,
+                    Playing,
+                    Playing,
+                    Playing,
+                    Playing,
+                    Playing,
+                    Lose,
+                },
+                final: Lose,
+            },
         }
 
         for _, g := range tests {
+            game.Reset()
             input := make(chan Move)
             output := game.Run(input)
 
