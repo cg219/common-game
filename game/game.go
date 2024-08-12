@@ -3,15 +3,18 @@ package game
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
-type Status int
+type LoopStatus int
 
 type Game struct {
     WrongTurns int
     MaxTurns int
     Subjects [4]Category
     CompletedSubjects []int
+    HealthTickInvteral time.Duration
+    IsInactive bool
 }
 
 type Category struct {
@@ -24,10 +27,11 @@ type Move struct {
 }
 
 const (
-    Win Status = iota
+    Win LoopStatus = iota
     Lose
     Playing
     Broken
+    Inactive
     None
 )
 
@@ -49,7 +53,6 @@ func Start(g *Game) {
     }
 
     game = g
-
     game.Reset()
     input := make(chan Move)
     output := game.Run(input)
@@ -86,40 +89,53 @@ func newGame() *Game {
         WrongTurns: 0,
         MaxTurns: 4,
         Subjects: subjects,
+        HealthTickInvteral: 2 * time.Minute,
     }
 }
 
-func loop(input <-chan Move, output chan<- Status, g *Game) {
-    for move := range input {
-        g.CheckSelection(move.words)
-        s := g.CheckStatus()
+func loop(input <-chan Move, output chan<- LoopStatus, g *Game) {
+    tick := time.NewTicker(g.HealthTickInvteral)
 
-        output <- s
+    defer tick.Stop()
+    defer close(output)
+
+    for {
+        select {
+        case move, ok := <-input:
+            if !ok {
+                return
+            }
+
+            g.CheckSelection(move.words)
+            s := g.CheckStatus()
+
+            tick.Reset(g.HealthTickInvteral)
+            output <- s
+        case <-tick.C:
+            g.IsInactive = true
+            output <- Inactive 
+            return
+        }
     }
-
-    close(output)
 }
 
-// Start Status Interface
+// Start LoopStatus Interface
 
-func (s Status) String() string {
+func (s LoopStatus) String() string {
     return []string{"Win", "Lose", "Playing", "Broken", "None"}[s]
 }
 
-func (s Status) Enum() int {
+func (s LoopStatus) Enum() int {
     return int(s)
 }
 
-// --End Status Interface
+// --End LoopStatus Interface
 
 // Start Game Interface
 
 func (g *Game) CheckSelection(words [4]string) (bool, *Category) {
     cat := -1
     matches := 0
-
-    defer func() {
-    }()
 
     for _, cw := range words { // cw = Current Word
         for csi, cc := range g.Subjects { // cc = Current Category csi = Current Subject Index
@@ -154,10 +170,11 @@ func (g *Game) CheckSelection(words [4]string) (bool, *Category) {
 func (g *Game) Reset() {
     g.WrongTurns = 0
     g.CompletedSubjects = make([]int, 0)
+    g.IsInactive = false
 }
 
-func (g *Game) Run(ch <-chan Move) <-chan Status {
-    statusCh := make(chan Status)
+func (g *Game) Run(ch <-chan Move) <-chan LoopStatus {
+    statusCh := make(chan LoopStatus)
 
     go loop(ch, statusCh, g)
 
@@ -173,12 +190,16 @@ func (g *Game) CheckSubjectStatus(s int) bool {
     return false
 }
 
-func (g *Game) CheckStatus() Status {
-    lookup := make(map[int]bool)
+func (g *Game) CheckStatus() LoopStatus {
+    if g.IsInactive {
+        return Inactive
+    }
 
     if g.WrongTurns > g.MaxTurns {
         return Broken
     }
+
+    lookup := make(map[int]bool)
 
     for _, cs := range g.CompletedSubjects {
         v, ok := lookup[cs]

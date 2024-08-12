@@ -70,17 +70,15 @@ func TestGame(t *testing.T) {
         }
     })
 
-    t.Run("Check Status", func (t *testing.T) {
+    t.Run("Check LoopStatus", func (t *testing.T) {
 
     })
 
     t.Run("Simulate Games", func(t *testing.T) {
-
-
         tests := []struct {
             moves []Move
-            outcomes []Status
-            final Status
+            outcomes []LoopStatus
+            final LoopStatus
         } {
             {
                 moves: []Move{
@@ -89,7 +87,7 @@ func TestGame(t *testing.T) {
                     newMove("Black", "White", "Hispanic", "Indian"),
                     newMove("Brown", "Red", "Blue", "Orange"),
                 },
-                outcomes: []Status{
+                outcomes: []LoopStatus{
                     Playing,
                     Playing,
                     Playing,
@@ -107,7 +105,7 @@ func TestGame(t *testing.T) {
                     newMove("Black", "Red", "Blue", "Orange"),
                     newMove("Black", "Hispanic", "Blue", "Orange"),
                 },
-                outcomes: []Status{
+                outcomes: []LoopStatus{
                     Playing,
                     Playing,
                     Playing,
@@ -128,7 +126,7 @@ func TestGame(t *testing.T) {
                     newMove("Black", "Red", "Blue", "Orange"),
                     newMove("Black", "White", "Hispanic", "Indian"),
                 },
-                outcomes: []Status{
+                outcomes: []LoopStatus{
                     Playing,
                     Playing,
                     Playing,
@@ -148,7 +146,7 @@ func TestGame(t *testing.T) {
                     newMove("Brown", "Red", "Blue", "Orange"),
                     newMove("Black", "Hispanic", "White", "Indian"),
                 },
-                outcomes: []Status{
+                outcomes: []LoopStatus{
                     Playing,
                     Playing,
                     Playing,
@@ -167,7 +165,7 @@ func TestGame(t *testing.T) {
                     newMove("Brown", "red", "Blue", "Orange"),
                     newMove("black", "Hispanic", "White", "Indian"),
                 },
-                outcomes: []Status{
+                outcomes: []LoopStatus{
                     Playing,
                     Playing,
                     Playing,
@@ -188,7 +186,7 @@ func TestGame(t *testing.T) {
                     newMove("Brown", "red", "Blue", "Orange"),
                     newMove("Brown", "red", "Blue", "Orange"),
                 },
-                outcomes: []Status{
+                outcomes: []LoopStatus{
                     Playing,
                     Playing,
                     Playing,
