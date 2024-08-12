@@ -122,7 +122,7 @@ func loop(input <-chan Move, output chan<- LoopStatus, g *Game) {
 // Start LoopStatus Interface
 
 func (s LoopStatus) String() string {
-    return []string{"Win", "Lose", "Playing", "Broken", "None"}[s]
+    return []string{"Win", "Lose", "Playing", "Broken", "Inactive", "None"}[s]
 }
 
 func (s LoopStatus) Enum() int {
