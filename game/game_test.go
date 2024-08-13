@@ -2,6 +2,7 @@ package game
 
 import (
 	"testing"
+	"time"
 )
 
 func TestGame(t *testing.T) {
@@ -72,6 +73,48 @@ func TestGame(t *testing.T) {
 
     t.Run("Check LoopStatus", func (t *testing.T) {
 
+    })
+
+    t.Run("Test Game Cancellation", func(t *testing.T) {
+        tests := []struct {
+            moves []Move
+            outcome LoopStatus
+        } {
+            {
+                moves: []Move{
+                    newMove("Monday", "Tuesday", "Thursday", "Sunday"),
+                    newMove("Leap", "Soar", "Float", "Fly"),
+                },
+                outcome: Inactive,
+            },
+        }
+
+        for _, g := range tests {
+            game.Reset()
+            game.HealthTickInvteral = 100 * time.Millisecond
+            input := make(chan Move)
+            output := game.Run(input)
+
+            go func() {
+                for _, m := range g.moves {
+                    input <- m
+                    time.Sleep(200 * time.Millisecond)
+                }
+
+                close(input)
+            }()
+
+            var status LoopStatus
+
+            for s := range output {
+                status = s
+            }
+
+            if status.Enum() != g.outcome.Enum() {
+                i := len(g.moves) - 1
+                t.Fatalf("\nMove: %s\nexpected %s; got %s", g.moves[i].words, g.outcome, status)
+            }
+        }
     })
 
     t.Run("Simulate Games", func(t *testing.T) {
