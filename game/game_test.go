@@ -168,6 +168,11 @@ func TestGame(t *testing.T) {
             outcomes []LoopStatus
             statuses []LoopStatus
             final LoopStatus
+            stats struct {
+                correct int
+                wrong int
+                total int
+            }
         } {
             {
                 moves: []Move{
@@ -187,6 +192,11 @@ func TestGame(t *testing.T) {
                     Correct,
                     Correct,
                     Win,
+                },
+                stats: struct{correct int; wrong int; total int}{
+                    correct: 4,
+                    wrong: 0,
+                    total: 4,
                 },
                 final: Win,
             },
@@ -218,6 +228,11 @@ func TestGame(t *testing.T) {
                     Incorrect,
                     Lose,
                 },
+                stats: struct{correct int; wrong int; total int}{
+                    correct: 3,
+                    wrong: 4,
+                    total: 7,
+                },
                 final: Lose,
             },
             {
@@ -248,6 +263,11 @@ func TestGame(t *testing.T) {
                     Incorrect,
                     Win,
                 },
+                stats: struct{correct int; wrong int; total int}{
+                    correct: 4,
+                    wrong: 3,
+                    total: 7,
+                },
                 final: Win,
             },
             {
@@ -274,6 +294,11 @@ func TestGame(t *testing.T) {
                     Incorrect,
                     Correct,
                     Win,
+                },
+                stats: struct{correct int; wrong int; total int}{
+                    correct: 4,
+                    wrong: 2,
+                    total: 6,
                 },
                 final: Win,
             },
@@ -302,6 +327,11 @@ func TestGame(t *testing.T) {
                     Correct,
                     Win,
                 },
+                stats: struct{correct int; wrong int; total int}{
+                    correct: 4,
+                    wrong: 2,
+                    total: 6,
+                },
                 final: Win,
             },
             {
@@ -322,8 +352,8 @@ func TestGame(t *testing.T) {
                     Playing,
                     Playing,
                     Lose,
-                    Broken,
-                    Broken,
+                    Inactive,
+                    Inactive,
                 },
                 statuses: []LoopStatus{
                     Correct,
@@ -335,11 +365,16 @@ func TestGame(t *testing.T) {
                     None,
                     None,
                 },
+                stats: struct{correct int; wrong int; total int}{
+                    correct: 2,
+                    wrong: 4,
+                    total: 6,
+                },
                 final: Broken,
             },
         }
 
-        for _, g := range tests {
+        for i, g := range tests {
             game.Reset()
             input := make(chan Move)
             output := game.Run(input)
@@ -364,6 +399,18 @@ func TestGame(t *testing.T) {
                 }
 
                 step++
+            }
+
+            if g.stats.correct != game.Metadata.Correct {
+                t.Fatalf("Stats Correct Error: expected %d; got %d; Test: %d", g.stats.correct, game.Metadata.Correct, i)
+            }
+
+            if g.stats.wrong != game.Metadata.WrongTurns {
+                t.Fatalf("Stats Wrong Error: expected %d; got %d; Test: %d", g.stats.wrong, game.Metadata.WrongTurns, i)
+            }
+
+            if g.stats.total != game.Metadata.TotalTurns {
+                t.Fatalf("Stats Total Error: expected %d; got %d; Test: %d", g.stats.total, game.Metadata.TotalTurns, i)
             }
         }
     })

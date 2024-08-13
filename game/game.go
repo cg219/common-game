@@ -43,6 +43,11 @@ type Stats struct {
 func (g *Game) CheckSelection(words [4]string) (bool, *Subject) {
     cat := -1
     matches := 0
+
+    if g.IsInactive {
+        return false, nil
+    }
+
     g.Metadata.TotalTurns++
 
     for _, cw := range words { // cw = Current Word
@@ -66,7 +71,7 @@ func (g *Game) CheckSelection(words [4]string) (bool, *Subject) {
         }
     }
 
-    if matches == 4 {
+    if matches == 4 && !g.IsInactive {
         g.CompletedSubjects = append(g.CompletedSubjects, cat)
         g.Metadata.Correct++
         return true, &g.Subjects[cat]
@@ -120,7 +125,7 @@ func (g *Game) CheckStatus() LoopStatus {
 
         if v {
             if g.Metadata.WrongTurns == g.MaxTurns {
-                g.Metadata.WrongTurns++
+                g.IsInactive = true
                 return Lose
             }
 
@@ -129,11 +134,12 @@ func (g *Game) CheckStatus() LoopStatus {
     } 
 
     if len(lookup) == 4 {
+        g.IsInactive = true
         return Win
     }
 
     if g.Metadata.WrongTurns == g.MaxTurns {
-        g.Metadata.WrongTurns++
+        g.IsInactive = true
         return Lose
     }
 
