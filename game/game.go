@@ -7,17 +7,7 @@ import (
 )
 
 type LoopStatus int
-
-type Game struct {
-    WrongTurns int
-    MaxTurns int
-    Subjects [4]Category
-    CompletedSubjects []int
-    HealthTickInvteral time.Duration
-    IsInactive bool
-}
-
-type Category struct {
+type Subject struct {
     Name string
     Words [4]string
 }
@@ -26,12 +16,39 @@ type Move struct {
     words [4]string
 }
 
+type StatusMetadata struct {
+    Move Move
+    Subject Subject
+    Type LoopStatus
+    Correct bool
+}
+
+type Status struct {
+    Metadata StatusMetadata
+}
+
+type StatusGroup struct {
+    LoopStatus LoopStatus
+    Status Status
+}
+
+type Game struct {
+    WrongTurns int
+    MaxTurns int
+    Subjects [4]Subject
+    CompletedSubjects []int
+    HealthTickInvteral time.Duration
+    IsInactive bool
+}
+
 const (
     Win LoopStatus = iota
     Lose
     Playing
     Broken
     Inactive
+    Correct
+    Incorrect
     None
 )
 
@@ -39,7 +56,15 @@ func Create() (*Game, error) {
     return newGame(), nil
 }
 
-func Start(g *Game) {
+func StartWithGame(input <-chan Move, g *Game) <-chan Status {
+    return start(input, g)
+}
+
+func Start(input <-chan Move) <-chan Status {
+    return start(input, nil)
+}
+
+func start(input <-chan Move, g *Game) <-chan Status {
     var game *Game
 
     if g == nil {
@@ -54,33 +79,40 @@ func Start(g *Game) {
 
     game = g
     game.Reset()
-    input := make(chan Move)
-    output := game.Run(input)
+    output := make(chan Status)
+    status := game.Run(input)
 
-    for s := range output {
-        fmt.Println(s)
-    }
+    go func() {
+        for s := range status {
+            // fmt.Println(s.LoopStatus, s.Status)
+            output <- s.Status
+        }
+
+        close(output)
+    }()
+
+    return output
 }
 
 func newGame() *Game {
-    var subjects [4]Category
+    var subjects [4]Subject
 
-    subjects[0] = Category{
+    subjects[0] = Subject{
         Name: "Days of the Week",
         Words: [4]string{"Monday", "Tuesday", "Thursday", "Sunday"},
     }
 
-    subjects[1] = Category{
+    subjects[1] = Subject{
         Name: "Through the Air",
         Words: [4]string{"Leap", "Soar", "Float", "Fly"},
     }
 
-    subjects[2] = Category{
+    subjects[2] = Subject{
         Name: "Races",
         Words: [4]string{"Black", "White", "Hispanic", "Indian"},
     }
 
-    subjects[3] = Category{
+    subjects[3] = Subject{
         Name: "Colors",
         Words: [4]string{"Brown", "Red", "Blue", "Orange"},
     }
@@ -93,7 +125,7 @@ func newGame() *Game {
     }
 }
 
-func loop(input <-chan Move, output chan<- LoopStatus, g *Game) {
+func loop(input <-chan Move, output chan<- StatusGroup, g *Game) {
     tick := time.NewTicker(g.HealthTickInvteral)
 
     defer tick.Stop()
@@ -106,23 +138,96 @@ func loop(input <-chan Move, output chan<- LoopStatus, g *Game) {
                 return
             }
 
-            g.CheckSelection(move.words)
-            s := g.CheckStatus()
+            correct, sub := g.CheckSelection(move.words)
+            loopStatus := g.CheckStatus()
+
+            var status Status
+
+            if sub == nil {
+                status = Status{
+                    Metadata: StatusMetadata{
+                        Move: move,
+                        Type: loopStatus,
+                        Correct: correct,
+                    },
+                }
+            } else {
+                status = Status{
+                    Metadata: StatusMetadata{
+                        Move: move,
+                        Subject: *sub,
+                        Type: loopStatus,
+                        Correct: correct,
+                    },
+                }
+            }
+
 
             tick.Reset(g.HealthTickInvteral)
-            output <- s
+
+            output <- StatusGroup{
+                LoopStatus: loopStatus,
+                Status: status,
+            }
         case <-tick.C:
             g.IsInactive = true
-            output <- Inactive 
+            status := Status{
+                Metadata: StatusMetadata{
+                    Type: Inactive,
+                },
+            }
+
+            output <- StatusGroup{
+                LoopStatus: Inactive,
+                Status: status,
+            } 
+
             return
         }
+    }
+}
+
+func (s Status) String() string {
+    switch s.Metadata.Type.Enum() {
+    case Playing.Enum():
+        switch s.Metadata.Correct {
+        case true:
+            return fmt.Sprintf("%s is correct!\n", s.Metadata.Move.words)
+        case false:
+            return fmt.Sprintf("Aww! %s was incorrect. Try Again\n", s.Metadata.Move.words)
+        }
+    case Win.Enum():
+        return fmt.Sprintf("WINNER!!\n")
+    case Lose.Enum():
+        return fmt.Sprintf("GAME OVER!\n")
+    default:
+        return fmt.Sprintf("Something went wrong.\n")
+    }
+
+    return ""
+}
+
+func (s Status) Status() LoopStatus {
+    switch s.Metadata.Type.Enum() {
+    case Win.Enum():
+        return Win
+    case Lose.Enum():
+        return Lose
+    case Playing.Enum():
+        if s.Metadata.Correct {
+            return Correct
+        }
+        
+        return Incorrect
+    default:
+        return None
     }
 }
 
 // Start LoopStatus Interface
 
 func (s LoopStatus) String() string {
-    return []string{"Win", "Lose", "Playing", "Broken", "Inactive", "None"}[s]
+    return []string{"Win", "Lose", "Playing", "Broken", "Inactive", "Correct", "Incorrect", "None"}[s]
 }
 
 func (s LoopStatus) Enum() int {
@@ -133,13 +238,13 @@ func (s LoopStatus) Enum() int {
 
 // Start Game Interface
 
-func (g *Game) CheckSelection(words [4]string) (bool, *Category) {
+func (g *Game) CheckSelection(words [4]string) (bool, *Subject) {
     cat := -1
     matches := 0
 
     for _, cw := range words { // cw = Current Word
-        for csi, cc := range g.Subjects { // cc = Current Category csi = Current Subject Index
-            for _, ccw := range cc.Words { // ccw = Current Category Word
+        for csi, cc := range g.Subjects { // cc = Current Subject csi = Current Subject Index
+            for _, ccw := range cc.Words { // ccw = Current Subject Word
                 if strings.EqualFold(cw, ccw) {
                     if cat == -1 {
                         cat = csi
@@ -173,8 +278,8 @@ func (g *Game) Reset() {
     g.IsInactive = false
 }
 
-func (g *Game) Run(ch <-chan Move) <-chan LoopStatus {
-    statusCh := make(chan LoopStatus)
+func (g *Game) Run(ch <-chan Move) <-chan StatusGroup {
+    statusCh := make(chan StatusGroup)
 
     go loop(ch, statusCh, g)
 

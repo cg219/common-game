@@ -107,7 +107,7 @@ func TestGame(t *testing.T) {
             var status LoopStatus
 
             for s := range output {
-                status = s
+                status = s.LoopStatus
             }
 
             if status.Enum() != g.outcome.Enum() {
@@ -117,10 +117,56 @@ func TestGame(t *testing.T) {
         }
     })
 
+    t.Run("Test StartGame", func(t *testing.T) {
+        test := struct {
+            moves []Move
+            outcomes []LoopStatus
+        } {
+            moves: []Move{
+                newMove("Monday", "Tuesday", "Thursday", "Sunday"),
+                newMove("Leap", "Soar", "Float", "Fly"),
+                newMove("Black", "Soar", "Hispanic", "Indian"),
+                newMove("Black", "White", "Blue", "Indian"),
+                newMove("Brown", "Red", "Blue", "Orange"),
+                newMove("Black", "Red", "Blue", "Orange"),
+                newMove("Black", "Hispanic", "Blue", "Orange"),
+            },
+            outcomes: []LoopStatus{
+                Correct,
+                Correct,
+                Incorrect,
+                Incorrect,
+                Correct,
+                Incorrect,
+                Lose,
+            },
+        }
+
+        input := make(chan Move)
+        statuses := Start(input)
+        step := 0
+
+        go func() {
+            for _, m := range test.moves {
+                input <- m
+            }
+
+            close(input)
+        }()
+
+        for s := range statuses {
+            if s.Status() != test.outcomes[step] {
+                t.Fatalf("\nMove: %s\nexpected %s; got %s", test.moves[step].words, test.outcomes[step], s.Status())
+            }
+            step++
+        }
+    })
+
     t.Run("Simulate Games", func(t *testing.T) {
         tests := []struct {
             moves []Move
             outcomes []LoopStatus
+            statuses []LoopStatus
             final LoopStatus
         } {
             {
@@ -134,6 +180,12 @@ func TestGame(t *testing.T) {
                     Playing,
                     Playing,
                     Playing,
+                    Win,
+                },
+                statuses: []LoopStatus{
+                    Correct,
+                    Correct,
+                    Correct,
                     Win,
                 },
                 final: Win,
@@ -157,6 +209,15 @@ func TestGame(t *testing.T) {
                     Playing,
                     Lose,
                 },
+                statuses: []LoopStatus{
+                    Correct,
+                    Correct,
+                    Incorrect,
+                    Incorrect,
+                    Correct,
+                    Incorrect,
+                    Lose,
+                },
                 final: Lose,
             },
             {
@@ -178,7 +239,16 @@ func TestGame(t *testing.T) {
                     Playing,
                     Win,
                 },
-                final: Lose,
+                statuses: []LoopStatus{
+                    Correct,
+                    Correct,
+                    Incorrect,
+                    Incorrect,
+                    Correct,
+                    Incorrect,
+                    Win,
+                },
+                final: Win,
             },
             {
                 moves: []Move{
@@ -197,7 +267,15 @@ func TestGame(t *testing.T) {
                     Playing,
                     Win,
                 },
-                final: Lose,
+                statuses: []LoopStatus{
+                    Correct,
+                    Correct,
+                    Incorrect,
+                    Incorrect,
+                    Correct,
+                    Win,
+                },
+                final: Win,
             },
             {
                 moves: []Move{
@@ -216,7 +294,15 @@ func TestGame(t *testing.T) {
                     Playing,
                     Win,
                 },
-                final: Lose,
+                statuses: []LoopStatus{
+                    Correct,
+                    Correct,
+                    Incorrect,
+                    Incorrect,
+                    Correct,
+                    Win,
+                },
+                final: Win,
             },
             {
                 moves: []Move{
@@ -239,6 +325,16 @@ func TestGame(t *testing.T) {
                     Broken,
                     Broken,
                 },
+                statuses: []LoopStatus{
+                    Correct,
+                    Correct,
+                    Incorrect,
+                    Incorrect,
+                    Incorrect,
+                    Lose,
+                    None,
+                    None,
+                },
                 final: Broken,
             },
         }
@@ -259,8 +355,12 @@ func TestGame(t *testing.T) {
             step := 0
 
             for s := range output {
-                if s != g.outcomes[step] {
-                    t.Fatalf("\nMove: %s\nexpected %s; got %s", g.moves[step].words, g.outcomes[step], s)
+                if s.LoopStatus != g.outcomes[step] {
+                    t.Fatalf("\nLoop Status Error\nMove: %s\nexpected %s; got %s", g.moves[step].words, g.outcomes[step], s.LoopStatus)
+                }
+
+                if s.Status.Status() != g.statuses[step] {
+                    t.Fatalf("\nStatus Error\nMove: %s\nexpected %s; got %s", g.moves[step].words, g.statuses[step], s.Status)
                 }
 
                 step++
