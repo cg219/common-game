@@ -52,8 +52,8 @@ func TestGame(t *testing.T) {
                 }
             }
 
-            if s.turns != game.WrongTurns {
-                t.Fatalf("Turn: expected %d; got %d", s.turns, game.WrongTurns)
+            if s.turns != game.Metadata.WrongTurns {
+                t.Fatalf("Turn: expected %d; got %d", s.turns, game.Metadata.WrongTurns)
             }
         }
 
@@ -62,8 +62,8 @@ func TestGame(t *testing.T) {
     t.Run("Reset", func(t *testing.T) {
         game.Reset()
 
-        if game.WrongTurns != 0 {
-            t.Fatalf("Turns: expected %d; got %d", 0, game.WrongTurns)
+        if game.Metadata.WrongTurns != 0 {
+            t.Fatalf("Turns: expected %d; got %d", 0, game.Metadata.WrongTurns)
         }
 
         if len(game.CompletedSubjects) > 0 {

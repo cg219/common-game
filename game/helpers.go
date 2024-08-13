@@ -1,5 +1,9 @@
 package game
 
+import (
+	"time"
+)
+
 func Create() (*Game, error) {
     return newGame(), nil
 }
@@ -66,7 +70,10 @@ func newGame() *Game {
     }
 
     return &Game{
-        WrongTurns: 0,
+        Metadata: struct{Player; Stats}{
+            Player: Player{},
+            Stats: Stats{},
+        },
         MaxTurns: 4,
         Subjects: subjects,
         HealthTickInvteral: 2 * time.Minute,
@@ -75,8 +82,12 @@ func newGame() *Game {
 
 func loop(input <-chan Move, output chan<- StatusGroup, g *Game) {
     tick := time.NewTicker(g.HealthTickInvteral)
+    g.Metadata.StartTime = time.Now()
 
     defer tick.Stop()
+    defer func() {
+        g.Metadata.EndTime = time.Now()
+    }()
     defer close(output)
 
     for {

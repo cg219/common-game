@@ -15,17 +15,35 @@ type Move struct {
 }
 
 type Game struct {
-    WrongTurns int
     MaxTurns int
     Subjects [4]Subject
     CompletedSubjects []int
     HealthTickInvteral time.Duration
     IsInactive bool
+    Metadata struct {
+        Player
+        Stats
+    }
+}
+
+type Player struct {
+    Username string
+    Wins int
+    Losses int
+}
+
+type Stats struct {
+    TotalTurns int
+    WrongTurns int
+    Correct int
+    StartTime time.Time
+    EndTime time.Time
 }
 
 func (g *Game) CheckSelection(words [4]string) (bool, *Subject) {
     cat := -1
     matches := 0
+    g.Metadata.TotalTurns++
 
     for _, cw := range words { // cw = Current Word
         for csi, cc := range g.Subjects { // cc = Current Subject csi = Current Subject Index
@@ -38,7 +56,7 @@ func (g *Game) CheckSelection(words [4]string) (bool, *Subject) {
                     }
 
                     if cat != csi {
-                        g.WrongTurns++
+                        g.Metadata.WrongTurns++
                         return false, nil
                     }
 
@@ -50,15 +68,16 @@ func (g *Game) CheckSelection(words [4]string) (bool, *Subject) {
 
     if matches == 4 {
         g.CompletedSubjects = append(g.CompletedSubjects, cat)
+        g.Metadata.Correct++
         return true, &g.Subjects[cat]
     }
 
-    g.WrongTurns++
+    g.Metadata.WrongTurns++
     return false, nil
 }
 
 func (g *Game) Reset() {
-    g.WrongTurns = 0
+    g.Metadata.Stats = Stats{}
     g.CompletedSubjects = make([]int, 0)
     g.IsInactive = false
 }
@@ -85,7 +104,7 @@ func (g *Game) CheckStatus() LoopStatus {
         return Inactive
     }
 
-    if g.WrongTurns > g.MaxTurns {
+    if g.Metadata.WrongTurns > g.MaxTurns {
         return Broken
     }
 
@@ -100,8 +119,8 @@ func (g *Game) CheckStatus() LoopStatus {
         }
 
         if v {
-            if g.WrongTurns == g.MaxTurns {
-                g.WrongTurns++
+            if g.Metadata.WrongTurns == g.MaxTurns {
+                g.Metadata.WrongTurns++
                 return Lose
             }
 
@@ -113,8 +132,8 @@ func (g *Game) CheckStatus() LoopStatus {
         return Win
     }
 
-    if g.WrongTurns == g.MaxTurns {
-        g.WrongTurns++
+    if g.Metadata.WrongTurns == g.MaxTurns {
+        g.Metadata.WrongTurns++
         return Lose
     }
 
