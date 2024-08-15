@@ -1,6 +1,7 @@
 package game
 
 import (
+	"math/rand"
 	"strings"
 	"time"
 )
@@ -11,7 +12,7 @@ type Subject struct {
 }
 
 type Move struct {
-    words [4]string
+    Words [4]string
 }
 
 type Game struct {
@@ -38,6 +39,25 @@ type Stats struct {
     Correct int
     StartTime time.Time
     EndTime time.Time
+}
+
+func (g *Game) Words() []string {
+    words := make([]string, 16)
+    seed := rand.Perm(16)
+
+    var merged []string
+
+    for _, s := range g.Subjects {
+        for _, w := range s.Words {
+            merged = append(merged, w)
+        }
+    }
+
+    for i, w := range seed {
+        words[w] = merged[i]
+    }
+
+    return words
 }
 
 func (g *Game) CheckSelection(words [4]string) (bool, *Subject) {
@@ -87,12 +107,13 @@ func (g *Game) Reset() {
     g.IsInactive = false
 }
 
-func (g *Game) Run(ch <-chan Move) <-chan StatusGroup {
+func (g *Game) Run() (<-chan StatusGroup, chan<- Move) {
     statusCh := make(chan StatusGroup)
+    moveCh := make(chan Move)
 
-    go loop(ch, statusCh, g)
+    go loop(moveCh, statusCh, g)
 
-    return statusCh
+    return statusCh, moveCh
 }
 
 func (g *Game) CheckSubjectStatus(s int) bool {
