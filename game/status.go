@@ -36,16 +36,16 @@ func (s Status) String() string {
     case Playing.Enum():
         switch s.Metadata.Correct {
         case true:
-            return fmt.Sprintf("%s is correct!\n", s.Metadata.Move.words)
+            return fmt.Sprintf("%s is correct!", s.Metadata.Move.Words)
         case false:
-            return fmt.Sprintf("Aww! %s was incorrect. Try Again\n", s.Metadata.Move.words)
+            return fmt.Sprintf("Aww! %s was incorrect. Try Again", s.Metadata.Move.Words)
         }
     case Win.Enum():
-        return fmt.Sprintf("WINNER!!\n")
+        return "WINNER!!"
     case Lose.Enum():
-        return fmt.Sprintf("GAME OVER!\n")
+        return "GAME OVER!"
     default:
-        return fmt.Sprintf("Something went wrong.\n")
+        return "Something went wrong."
     }
 
     return ""

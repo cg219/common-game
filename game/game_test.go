@@ -22,7 +22,7 @@ func TestGame(t *testing.T) {
         copy(a[:], words)
 
         move := &Move{
-            words: a,
+            Words: a,
         }
 
         return *move
@@ -92,8 +92,7 @@ func TestGame(t *testing.T) {
         for _, g := range tests {
             game.Reset()
             game.HealthTickInvteral = 100 * time.Millisecond
-            input := make(chan Move)
-            output := game.Run(input)
+            output, input := game.Run()
 
             go func() {
                 for _, m := range g.moves {
@@ -112,7 +111,7 @@ func TestGame(t *testing.T) {
 
             if status.Enum() != g.outcome.Enum() {
                 i := len(g.moves) - 1
-                t.Fatalf("\nMove: %s\nexpected %s; got %s", g.moves[i].words, g.outcome, status)
+                t.Fatalf("\nMove: %s\nexpected %s; got %s", g.moves[i].Words, g.outcome, status)
             }
         }
     })
@@ -156,7 +155,7 @@ func TestGame(t *testing.T) {
 
         for s := range statuses {
             if s.Status() != test.outcomes[step] {
-                t.Fatalf("\nMove: %s\nexpected %s; got %s", test.moves[step].words, test.outcomes[step], s.Status())
+                t.Fatalf("\nMove: %s\nexpected %s; got %s", test.moves[step].Words, test.outcomes[step], s.Status())
             }
             step++
         }
@@ -376,8 +375,7 @@ func TestGame(t *testing.T) {
 
         for i, g := range tests {
             game.Reset()
-            input := make(chan Move)
-            output := game.Run(input)
+            output, input := game.Run()
 
             go func() {
                 for _, m := range g.moves {
@@ -391,11 +389,11 @@ func TestGame(t *testing.T) {
 
             for s := range output {
                 if s.LoopStatus != g.outcomes[step] {
-                    t.Fatalf("\nLoop Status Error\nMove: %s\nexpected %s; got %s", g.moves[step].words, g.outcomes[step], s.LoopStatus)
+                    t.Fatalf("\nLoop Status Error\nMove: %s\nexpected %s; got %s", g.moves[step].Words, g.outcomes[step], s.LoopStatus)
                 }
 
                 if s.Status.Status() != g.statuses[step] {
-                    t.Fatalf("\nStatus Error\nMove: %s\nexpected %s; got %s", g.moves[step].words, g.statuses[step], s.Status)
+                    t.Fatalf("\nStatus Error\nMove: %s\nexpected %s; got %s", g.moves[step].Words, g.statuses[step], s.Status)
                 }
 
                 step++

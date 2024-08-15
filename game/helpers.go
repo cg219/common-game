@@ -8,15 +8,15 @@ func Create() (*Game, error) {
     return newGame(), nil
 }
 
-func StartWithGame(input <-chan Move, g *Game) <-chan Status {
-    return start(input, g)
+func StartWithGame(g *Game) <-chan Status {
+    return start(g)
 }
 
-func Start(input <-chan Move) <-chan Status {
-    return start(input, nil)
+func Start() <-chan Status {
+    return start(nil)
 }
 
-func start(input <-chan Move, g *Game) <-chan Status {
+func start(g *Game) <-chan Status {
     var game *Game
 
     if g == nil {
@@ -32,7 +32,7 @@ func start(input <-chan Move, g *Game) <-chan Status {
     game = g
     game.Reset()
     output := make(chan Status)
-    status := game.Run(input)
+    status, _ := game.Run()
 
     go func() {
         for s := range status {
@@ -97,7 +97,7 @@ func loop(input <-chan Move, output chan<- StatusGroup, g *Game) {
                 return
             }
 
-            correct, sub := g.CheckSelection(move.words)
+            correct, sub := g.CheckSelection(move.Words)
             loopStatus := g.CheckStatus()
 
             var status Status
