@@ -30,7 +30,10 @@ type errorResponse struct {
 }
 
 type moveResponse struct {
-    Status string `json:"status"`
+    Status int `json:"status"`
+    Correct bool `json:"correct"`
+    Words  []string `json:"words,omitempty"`
+    Subject string `json:"subject,omitempty"`
     GameId int `json:"id"`
     TurnsLeft int `json:"moveLeft"`
 }
@@ -72,8 +75,8 @@ func startServer() error {
     store = make(map[int]*storeData)
 
     srv.mux.HandleFunc("GET /", getHome())
-    srv.mux.HandleFunc("GET /game", getGame())
-    srv.mux.Handle("POST /game", middlewareAuthGame(postGame()))
+    srv.mux.HandleFunc("POST /game", createGame())
+    srv.mux.Handle("PUT /game", mwGetAuth(updateGame()))
 
     return http.ListenAndServe(":3000", srv.mux)
 }
@@ -85,7 +88,7 @@ func getHome() http.HandlerFunc {
     }
 }
 
-func getGame() http.HandlerFunc {
+func createGame() http.HandlerFunc {
     return func(w http.ResponseWriter, _ *http.Request) {
         w.Header().Add("Content-Type", "application/json")
         game, err := game.Create()
@@ -106,8 +109,8 @@ func getGame() http.HandlerFunc {
 
         token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.RegisteredClaims{
             Issuer: "common-game",
-            IssuedAt: jwt.NewNumericDate(time.Now()),
-            ExpiresAt: jwt.NewNumericDate(time.Now().Add(20 * time.Minute)),
+            IssuedAt: jwt.NewNumericDate(time.Now().UTC()),
+            ExpiresAt: jwt.NewNumericDate(time.Now().Add(20 * time.Minute).UTC()),
             Subject: fmt.Sprintf("%d", id),
         })
 
@@ -135,7 +138,7 @@ func getGame() http.HandlerFunc {
     }
 }
 
-func middlewareAuthGame(h http.Handler) http.Handler {
+func mwGetAuth(h http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         stoken := strings.Replace(r.Header.Get("Authorization"), "Bearer ", "", 1)
         token, err := jwt.ParseWithClaims(stoken, &jwt.RegisteredClaims{}, func(t *jwt.Token) (interface{}, error) { return []byte("notsecure"), nil })
@@ -194,7 +197,7 @@ func getErrResponse(e error) []byte {
     return data
 }
 
-func postGame() http.HandlerFunc {
+func updateGame() http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
         w.Header().Add("Content-Type", "application/json")
 
@@ -229,9 +232,16 @@ func postGame() http.HandlerFunc {
         status := <- data.sch
 
         moveRes := &moveResponse{
-            Status: status.Status.String(),
+            Correct: status.Status.Metadata.Correct,
             GameId:  id,
             TurnsLeft: data.game.MaxTurns - data.game.Metadata.WrongTurns,
+            Status: status.Status.Status().Enum(),
+        }
+
+
+        if moveRes.Correct {
+            moveRes.Subject = status.Status.Metadata.Subject.Name
+            moveRes.Words = status.Status.Metadata.Move.Words[:]
         }
 
         res, err := json.Marshal(moveRes)
