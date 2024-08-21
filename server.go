@@ -75,8 +75,10 @@ func startServer() error {
     store = make(map[int]*storeData)
 
     srv.mux.HandleFunc("GET /", getHome())
-    srv.mux.HandleFunc("POST /game", createGame())
-    srv.mux.Handle("PUT /game", mwGetAuth(updateGame()))
+    srv.mux.HandleFunc("POST /api/game", createGame(true))
+    srv.mux.HandleFunc("POST /game", createGame(false))
+    srv.mux.Handle("PUT /api/game", mwGetAuth(updateGame(true)))
+    srv.mux.Handle("PUT /game", mwGetAuth(updateGame(false)))
 
     return http.ListenAndServe(":3000", srv.mux)
 }
@@ -88,9 +90,14 @@ func getHome() http.HandlerFunc {
     }
 }
 
-func createGame() http.HandlerFunc {
+func createGame(usejson bool) http.HandlerFunc {
     return func(w http.ResponseWriter, _ *http.Request) {
-        w.Header().Add("Content-Type", "application/json")
+        if usejson {
+            w.Header().Add("Content-Type", "application/json")
+        } else {
+            w.Header().Add("Content-Type", "text/html")
+        }
+
         game, err := game.Create()
 
         if err != nil {
@@ -110,7 +117,7 @@ func createGame() http.HandlerFunc {
         token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.RegisteredClaims{
             Issuer: "common-game",
             IssuedAt: jwt.NewNumericDate(time.Now().UTC()),
-            ExpiresAt: jwt.NewNumericDate(time.Now().Add(20 * time.Minute).UTC()),
+            ExpiresAt: jwt.NewNumericDate(time.Now().Add(60 * time.Minute).UTC()),
             Subject: fmt.Sprintf("%d", id),
         })
 
@@ -197,7 +204,7 @@ func getErrResponse(e error) []byte {
     return data
 }
 
-func updateGame() http.HandlerFunc {
+func updateGame(usejson bool) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
         w.Header().Add("Content-Type", "application/json")
 
