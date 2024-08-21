@@ -19,7 +19,7 @@ type server struct {
     mux *http.ServeMux
 }
 
-type gameResponse struct {
+type GameResponse struct {
     Words []string `json:"words"`
     GameId int `json:"id"`
     Token string `json:"token"`
@@ -97,58 +97,31 @@ func startServer() error {
     return http.ListenAndServe(":3000", srv.mux)
 }
 
+func forwardError(f *ForwardRequestError) {
+    log.Println(f.Error)
+    ctx := context.WithValue(f.Request.Context(), Error, errors.New("JWT Error"))
+    r := f.Request.WithContext(ctx)
+    f.NextHandler.ServeHTTP(f.ResponseWriter, r)
+}
+
+func getErrResponse(e error) []byte {
+    message := "Server Error: Something went wrong :c"
+    res := &errorResponse{ Error: message }
+    data, err := json.Marshal(res)
+    log.Println(e.Error())
+
+    if err != nil {
+        panic(nil)
+    }
+
+    return data
+}
+
 func getHome() http.HandlerFunc {
     return func(w http.ResponseWriter, _ *http.Request) {
         w.Header().Add("Content-Type", "text/plain")
         w.Write([]byte("Yay we're here!!"))
     }
-}
-
-func createGame(w http.ResponseWriter, _ *http.Request) error {
-    w.Header().Add("Content-Type", "application/json")
-
-    game, err := game.Create()
-
-    if err != nil {
-        return err
-    }
-
-    id := len(store)
-
-    statusCh, moveCh := game.Run()
-    store[id] = &storeData{
-        game: game,
-        mch: moveCh,
-        sch: statusCh,
-    }
-
-    token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.RegisteredClaims{
-        Issuer: "common-game",
-        IssuedAt: jwt.NewNumericDate(time.Now().UTC()),
-        ExpiresAt: jwt.NewNumericDate(time.Now().Add(60 * time.Minute).UTC()),
-        Subject: fmt.Sprintf("%d", id),
-    })
-
-    stoken, err := token.SignedString([]byte("notsecure"))
-
-    if err != nil {
-        return err
-    }
-
-    gr := &gameResponse{
-        GameId: id,
-        Words: game.Words(),
-        Token: stoken,
-    }
-
-    res, err := json.Marshal(gr)
-
-    if err != nil {
-        return err
-    }
-
-    w.Write(res)
-    return nil
 }
 
 func mwGetAuth(h http.Handler) http.Handler {
@@ -190,24 +163,53 @@ func mwGetAuth(h http.Handler) http.Handler {
     })
 }
 
-func forwardError(f *ForwardRequestError) {
-    log.Println(f.Error)
-    ctx := context.WithValue(f.Request.Context(), Error, errors.New("JWT Error"))
-    r := f.Request.WithContext(ctx)
-    f.NextHandler.ServeHTTP(f.ResponseWriter, r)
-}
+func createGame(w http.ResponseWriter, _ *http.Request) error {
+    w.Header().Add("Content-Type", "application/json")
 
-func getErrResponse(e error) []byte {
-    message := "Server Error: Something went wrong :c"
-    res := &errorResponse{ Error: message }
-    data, err := json.Marshal(res)
-    log.Println(e.Error())
+    game, err := game.Create()
 
     if err != nil {
-        panic(nil)
+        return err
     }
 
-    return data
+    id := len(store)
+
+    statusCh, moveCh := game.Run()
+    store[id] = &storeData{
+        game: game,
+        mch: moveCh,
+        sch: statusCh,
+    }
+
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.RegisteredClaims{
+        Issuer: "common-game",
+        IssuedAt: jwt.NewNumericDate(time.Now().UTC()),
+        ExpiresAt: jwt.NewNumericDate(time.Now().Add(60 * time.Minute).UTC()),
+        Subject: fmt.Sprintf("%d", id),
+    })
+
+    stoken, err := token.SignedString([]byte("notsecure"))
+
+    if err != nil {
+        return err
+    }
+
+    // log.Println(game.WordsWithData())
+
+    gr := &GameResponse{
+        GameId: id,
+        Words: game.Words(),
+        Token: stoken,
+    }
+
+    res, err := json.Marshal(gr)
+
+    if err != nil {
+        return err
+    }
+
+    w.Write(res)
+    return nil
 }
 
 func updateGame(w http.ResponseWriter, r *http.Request) error {
@@ -241,6 +243,8 @@ func updateGame(w http.ResponseWriter, r *http.Request) error {
     }
 
     status := <- data.sch
+
+    // log.Println(data.game.WordsWithData())
 
     moveRes := &moveResponse{
         Correct: status.Status.Metadata.Correct,

@@ -15,6 +15,12 @@ type Move struct {
     Words [4]string
 }
 
+type WordData struct {
+    Word string
+    Correct bool
+    Subject int
+}
+
 type Game struct {
     MaxTurns int
     Subjects [4]Subject
@@ -25,6 +31,7 @@ type Game struct {
         Player
         Stats
     }
+    words []string
 }
 
 type Player struct {
@@ -42,6 +49,41 @@ type Stats struct {
 }
 
 func (g *Game) Words() []string {
+    if len(g.words) > 0 {
+        return g.words
+    }
+
+    return g.Shuffle()
+}
+
+func (g *Game) WordsWithData() []WordData {
+    words := g.Words()
+    matches := make(map[string]int, 0)
+    data := make([]WordData, 0)
+
+    for _, csi := range g.CompletedSubjects {
+        for _, word := range g.Subjects[csi].Words {
+            matches[word] = csi
+        }
+    }
+
+    for _, word := range words {
+        correct := false
+        csi, ok := matches[word]
+
+        if ok {
+            correct = true
+        } else {
+            csi = -1
+        }
+
+        data = append(data, WordData{ Word: word, Correct: correct, Subject: csi })
+    }
+
+    return data
+}
+
+func (g *Game) Shuffle() []string {
     words := make([]string, 16)
     seed := rand.Perm(16)
 
@@ -57,6 +99,7 @@ func (g *Game) Words() []string {
         words[w] = merged[i]
     }
 
+    g.words = words
     return words
 }
 
