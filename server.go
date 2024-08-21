@@ -55,6 +55,7 @@ type ForwardRequestError struct {
     NextHandler http.Handler
 }
 
+type MHandlerFunc func(w http.ResponseWriter, r *http.Request) error
 type ContextKey int
 
 var store map[int]*storeData
@@ -70,15 +71,28 @@ func newServer() *server {
     }
 }
 
+func handle(h MHandlerFunc) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        if err := h(w, r); err != nil {
+            w.Write(getErrResponse(err))
+            log.Println("ERRR")
+        }
+    })
+}
+
+func (h MHandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+    if err := h(w, r); err != nil {
+        log.Println("ERRR")
+    }
+}
+
 func startServer() error {
     srv := newServer()
     store = make(map[int]*storeData)
 
     srv.mux.HandleFunc("GET /", getHome())
-    srv.mux.HandleFunc("POST /api/game", createGame(true))
-    srv.mux.HandleFunc("POST /game", createGame(false))
-    srv.mux.Handle("PUT /api/game", mwGetAuth(updateGame(true)))
-    srv.mux.Handle("PUT /game", mwGetAuth(updateGame(false)))
+    srv.mux.Handle("POST /api/game", handle(createGame))
+    srv.mux.Handle("PUT /api/game", mwGetAuth(handle(updateGame)))
 
     return http.ListenAndServe(":3000", srv.mux)
 }
@@ -90,59 +104,51 @@ func getHome() http.HandlerFunc {
     }
 }
 
-func createGame(usejson bool) http.HandlerFunc {
-    return func(w http.ResponseWriter, _ *http.Request) {
-        if usejson {
-            w.Header().Add("Content-Type", "application/json")
-        } else {
-            w.Header().Add("Content-Type", "text/html")
-        }
+func createGame(w http.ResponseWriter, _ *http.Request) error {
+    w.Header().Add("Content-Type", "application/json")
 
-        game, err := game.Create()
+    game, err := game.Create()
 
-        if err != nil {
-            w.Write(getErrResponse(err))
-            return
-        }
-
-        id := len(store)
-
-        statusCh, moveCh := game.Run()
-        store[id] = &storeData{
-            game: game,
-            mch: moveCh,
-            sch: statusCh,
-        }
-
-        token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.RegisteredClaims{
-            Issuer: "common-game",
-            IssuedAt: jwt.NewNumericDate(time.Now().UTC()),
-            ExpiresAt: jwt.NewNumericDate(time.Now().Add(60 * time.Minute).UTC()),
-            Subject: fmt.Sprintf("%d", id),
-        })
-
-        stoken, err := token.SignedString([]byte("notsecure"))
-
-        if err != nil {
-            w.Write(getErrResponse(err))
-            return
-        }
-
-        gr := &gameResponse{
-            GameId: id,
-            Words: game.Words(),
-            Token: stoken,
-        }
-
-        res, err := json.Marshal(gr)
-
-        if err != nil {
-            w.Write(getErrResponse(err))
-            return
-        }
-
-        w.Write(res)
+    if err != nil {
+        return err
     }
+
+    id := len(store)
+
+    statusCh, moveCh := game.Run()
+    store[id] = &storeData{
+        game: game,
+        mch: moveCh,
+        sch: statusCh,
+    }
+
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.RegisteredClaims{
+        Issuer: "common-game",
+        IssuedAt: jwt.NewNumericDate(time.Now().UTC()),
+        ExpiresAt: jwt.NewNumericDate(time.Now().Add(60 * time.Minute).UTC()),
+        Subject: fmt.Sprintf("%d", id),
+    })
+
+    stoken, err := token.SignedString([]byte("notsecure"))
+
+    if err != nil {
+        return err
+    }
+
+    gr := &gameResponse{
+        GameId: id,
+        Words: game.Words(),
+        Token: stoken,
+    }
+
+    res, err := json.Marshal(gr)
+
+    if err != nil {
+        return err
+    }
+
+    w.Write(res)
+    return nil
 }
 
 func mwGetAuth(h http.Handler) http.Handler {
@@ -204,61 +210,59 @@ func getErrResponse(e error) []byte {
     return data
 }
 
-func updateGame(usejson bool) http.HandlerFunc {
-    return func(w http.ResponseWriter, r *http.Request) {
-        w.Header().Add("Content-Type", "application/json")
+func updateGame(w http.ResponseWriter, r *http.Request) error {
+    w.Header().Add("Content-Type", "application/json")
 
-        cerr := r.Context().Value(Error)
+    cerr := r.Context().Value(Error)
 
-        if cerr, ok:= cerr.(error); ok {
-            w.Write(getErrResponse(error(cerr)))
-            return
-        }
-
-        id := r.Context().Value(GameId).(int)
-
-        data, ok := store[id]
-
-        if !ok {
-            w.Write(getErrResponse(fmt.Errorf("game with id %d not found", id)))
-            return
-        }
-
-        body := &gamePost{}
-        err := json.NewDecoder(r.Body).Decode(body)
-
-        if err != nil {
-            w.Write(getErrResponse(err))
-            return
-        }
-
-        data.mch <- game.Move{
-            Words: body.Words,
-        }
-
-        status := <- data.sch
-
-        moveRes := &moveResponse{
-            Correct: status.Status.Metadata.Correct,
-            GameId:  id,
-            TurnsLeft: data.game.MaxTurns - data.game.Metadata.WrongTurns,
-            Status: status.Status.Status().Enum(),
-        }
-
-
-        if moveRes.Correct {
-            moveRes.Subject = status.Status.Metadata.Subject.Name
-            moveRes.Words = status.Status.Metadata.Move.Words[:]
-        }
-
-        res, err := json.Marshal(moveRes)
-
-        if err != nil {
-            w.Write(getErrResponse(err))
-            return
-        }
-
-        log.Println(id)
-        w.Write(res)
+    if cerr, ok:= cerr.(error); ok {
+        w.Write(getErrResponse(error(cerr)))
+        return nil
     }
+
+    id := r.Context().Value(GameId).(int)
+
+    data, ok := store[id]
+
+    if !ok {
+        w.Write(getErrResponse(fmt.Errorf("game with id %d not found", id)))
+        return nil
+    }
+
+    body := &gamePost{}
+    err := json.NewDecoder(r.Body).Decode(body)
+
+    if err != nil {
+        return err
+    }
+
+    data.mch <- game.Move{
+        Words: body.Words,
+    }
+
+    status := <- data.sch
+
+    moveRes := &moveResponse{
+        Correct: status.Status.Metadata.Correct,
+        GameId:  id,
+        TurnsLeft: data.game.MaxTurns - data.game.Metadata.WrongTurns,
+        Status: status.Status.Status().Enum(),
+    }
+
+
+    if moveRes.Correct {
+        moveRes.Subject = status.Status.Metadata.Subject.Name
+        moveRes.Words = status.Status.Metadata.Move.Words[:]
+    }
+
+    res, err := json.Marshal(moveRes)
+
+    if err != nil {
+        return err
+    }
+
+    log.Println(id)
+    w.Write(res)
+
+    return nil
 }
