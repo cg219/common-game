@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -22,7 +23,6 @@ type server struct {
 type GameResponse struct {
     Words []string `json:"words"`
     GameId int `json:"id"`
-    Token string `json:"token"`
 }
 
 type errorResponse struct {
@@ -119,8 +119,10 @@ func getErrResponse(e error) []byte {
 
 func getHome() http.HandlerFunc {
     return func(w http.ResponseWriter, _ *http.Request) {
-        w.Header().Add("Content-Type", "text/plain")
-        w.Write([]byte("Yay we're here!!"))
+        tmpl := template.Must(template.ParseFiles("templates/pages/game.html"))
+        w.Header().Add("Content-Type", "text/html")
+
+        tmpl.Execute(w, nil)
     }
 }
 
@@ -164,8 +166,6 @@ func mwGetAuth(h http.Handler) http.Handler {
 }
 
 func createGame(w http.ResponseWriter, _ *http.Request) error {
-    w.Header().Add("Content-Type", "application/json")
-
     game, err := game.Create()
 
     if err != nil {
@@ -194,21 +194,27 @@ func createGame(w http.ResponseWriter, _ *http.Request) error {
         return err
     }
 
-    // log.Println(game.WordsWithData())
+    tmpl := template.Must(template.ParseFiles("templates/fragments/game-board.html"))
 
     gr := &GameResponse{
         GameId: id,
         Words: game.Words(),
-        Token: stoken,
     }
 
-    res, err := json.Marshal(gr)
-
-    if err != nil {
-        return err
+    cookie := http.Cookie{
+        Name: "the-connect-game",
+        Value: stoken,
+        Path: "/",
+        MaxAge: 3600,
+        HttpOnly: true,
+        Secure: true,
+        SameSite: http.SameSiteLaxMode,
     }
 
-    w.Write(res)
+    http.SetCookie(w, &cookie)
+    w.Header().Add("Content-Type", "text/html")
+    tmpl.Execute(w, gr)
+
     return nil
 }
 

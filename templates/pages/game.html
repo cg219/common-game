@@ -1,0 +1,14 @@
+<html>
+    <head>
+        <title>The Common Game</title>
+        <script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script>
+    </head>
+    <body>
+        <h1>The Comme Game</h1>
+        <button hx-post="/api/game" hx-target=".game" hx-swap="innerHTML">
+            Start a New Game
+        </button>
+
+        <div class="game"></div>
+    </body>
+</html>
