@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/cg219/common-game/game"
@@ -23,6 +22,12 @@ type server struct {
 type GameResponse struct {
     Words []string `json:"words"`
     GameId int `json:"id"`
+    TurnsLeft int `json:"moveLeft"`
+    Status int `json:"status"`
+    Move struct {
+        Correct bool `json:"correct"`
+        Words  []string `json:"words,omitempty"`
+    } `json:"move,omitempty"`
 }
 
 type errorResponse struct {
@@ -92,7 +97,7 @@ func startServer() error {
 
     srv.mux.HandleFunc("GET /", getHome())
     srv.mux.Handle("POST /api/game", handle(createGame))
-    srv.mux.Handle("PUT /api/game", mwGetAuth(handle(updateGame)))
+    srv.mux.Handle("PUT /api/game", playerOnly(handle(updateGame)))
 
     return http.ListenAndServe(":3000", srv.mux)
 }
@@ -126,9 +131,16 @@ func getHome() http.HandlerFunc {
     }
 }
 
-func mwGetAuth(h http.Handler) http.Handler {
+func playerOnly(h http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        stoken := strings.Replace(r.Header.Get("Authorization"), "Bearer ", "", 1)
+        cookie, err := r.Cookie("the-connect-game")
+
+        log.Print(cookie.Value)
+        if err != nil {
+            log.Print(err)
+        }
+
+        stoken := cookie.Value
         token, err := jwt.ParseWithClaims(stoken, &jwt.RegisteredClaims{}, func(t *jwt.Token) (interface{}, error) { return []byte("notsecure"), nil })
 
         fre := &ForwardRequestError{
@@ -199,6 +211,8 @@ func createGame(w http.ResponseWriter, _ *http.Request) error {
     gr := &GameResponse{
         GameId: id,
         Words: game.Words(),
+        TurnsLeft: game.MaxTurns - game.Metadata.WrongTurns,
+        Status: int(game.CheckStatus()),
     }
 
     cookie := http.Cookie{
@@ -219,11 +233,10 @@ func createGame(w http.ResponseWriter, _ *http.Request) error {
 }
 
 func updateGame(w http.ResponseWriter, r *http.Request) error {
-    w.Header().Add("Content-Type", "application/json")
-
     cerr := r.Context().Value(Error)
 
     if cerr, ok:= cerr.(error); ok {
+        w.Header().Add("Content-Type", "application/json")
         w.Write(getErrResponse(error(cerr)))
         return nil
     }
@@ -233,6 +246,7 @@ func updateGame(w http.ResponseWriter, r *http.Request) error {
     data, ok := store[id]
 
     if !ok {
+        w.Header().Add("Content-Type", "application/json")
         w.Write(getErrResponse(fmt.Errorf("game with id %d not found", id)))
         return nil
     }
@@ -264,6 +278,8 @@ func updateGame(w http.ResponseWriter, r *http.Request) error {
         moveRes.Subject = status.Status.Metadata.Subject.Name
         moveRes.Words = status.Status.Metadata.Move.Words[:]
     }
+
+    w.Header().Add("Content-Type", "application/json")
 
     res, err := json.Marshal(moveRes)
 
