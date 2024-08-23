@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -25,6 +26,8 @@ type GameResponse struct {
     GameId int `json:"id"`
     TurnsLeft int `json:"moveLeft"`
     Status int `json:"status"`
+    HasMove bool
+    WordExists func([]string, string) bool
     Move struct {
         Correct bool `json:"correct"`
         Words  []string `json:"words,omitempty"`
@@ -71,6 +74,10 @@ const (
     Error
 )
 
+func WordExists(words []string, w string) bool {
+    return slices.Contains(words, w)
+}
+
 func newServer() *server {
     return &server{
         mux: http.NewServeMux(),
@@ -97,6 +104,7 @@ func startServer() error {
     store = make(map[int]*storeData)
 
     srv.mux.HandleFunc("GET /", getHome())
+    srv.mux.Handle("GET /sf/*", http.StripPrefix("/sf", http.FileServer(http.Dir("./web"))))
     srv.mux.Handle("POST /api/game", handle(createGame))
     srv.mux.Handle("PUT /api/game", playerOnly(handle(updateGame)))
 
@@ -278,13 +286,13 @@ func updateGame(w http.ResponseWriter, r *http.Request) error {
         Words: data.game.WordsWithData(),
         TurnsLeft: data.game.MaxTurns - data.game.Metadata.WrongTurns,
         Status: status.Status.Status().Enum(),
-        Move: struct{Correct bool "json:\"correct\""; Words []string "json:\"words,omitempty\""} {
+        HasMove: true,
+        WordExists: WordExists,
+        Move: struct{Correct bool "json:\"correct\""; Words []string "json:\"words,omitempty\""}{
             Correct: status.Status.Metadata.Correct,
             Words: status.Status.Metadata.Move.Words[:],
         },
     }
-
-    log.Println(data.game.WordsWithData())
 
     w.Header().Add("Content-Type", "text/html")
     tmpl.Execute(w, gr)

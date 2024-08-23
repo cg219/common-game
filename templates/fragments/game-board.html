@@ -1,8 +1,15 @@
+<h3>Mistakes Left: {{.TurnsLeft}}</h3>
 <section data-status="{{.Status}}" class="game-board" data-game-id="{{.GameId}}" hx-trigger="moveSelected" hx-put="/api/game" hx-target="this" hx-swap="outerHTML" hx-vals="js:{words: event.detail.words}">
-    <h3>Mistakes Left: {{.TurnsLeft}}</h3>
-    <ul>
-        {{range .Words}}
-        <li data-value="{{.Word}}" data-correct="{{.Correct}}">{{.Word}}</li>
-        {{end}}
-    </ul>
+    {{range .Words}}
+    {{if $.HasMove}}
+    {{if (call $.WordExists $.Move.Words .Word)}}
+    <button class="game-piece{{if .Correct}} correct{{else}} wrong{{end}}" data-value="{{.Word}}" data-correct="{{.Correct}}" {{if and .Correct (or (eq $.Status 5) (eq $.Status 0))}} data-subject="{{.Subject}}"{{end}}>{{.Word}}</button>
+    {{else}}
+    <button class="game-piece{{if .Correct}} correct{{end}}" data-value="{{.Word}}" data-correct="{{.Correct}}" {{if .Correct}} data-subject="{{.Subject}}"{{end}}>{{.Word}}</button>
+    {{end}}
+    {{else}}
+    <button class="game-piece{{if .Correct}} correct{{end}}" data-value="{{.Word}}" data-correct="{{.Correct}}" data-subject="{{.Subject}}">{{.Word}}</button>
+    {{end}}
+    {{end}}
 </section>
+
