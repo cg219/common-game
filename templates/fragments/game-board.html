@@ -1,5 +1,11 @@
+{{if eq .Status 0}}
+<h3>WINNER!!</h3>
+{{else if eq .Status 1}}
+<h3>You Lose. Try Again</h3>
+{{else}}
 <h3>Mistakes Left: {{.TurnsLeft}}</h3>
-<section data-status="{{.Status}}" class="game-board" data-game-id="{{.GameId}}" hx-trigger="moveSelected" hx-put="/api/game" hx-target="this" hx-swap="outerHTML" hx-vals="js:{words: event.detail.words}">
+{{end}}
+<section data-status="{{.Status}}" class="game-board" data-game-id="{{.GameId}}" hx-trigger="moveSelected" hx-put="/api/game" hx-target=".game" hx-swap="innerHTML" hx-vals="js:{words: event.detail.words}">
     {{range .Words}}
     {{if $.HasMove}}
     {{if (call $.WordExists $.Move.Words .Word)}}
