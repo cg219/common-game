@@ -1,7 +1,7 @@
 <section class="game-board" data-game-id="{{.GameId}}">
     <ul>
         {{range .Words}}
-        <li>{{.}}</li>
+        <li data-value="{{.}}">{{.}}</li>
         {{end}}
     </ul>
 </section>
