@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cg219/common-game/game"
@@ -20,7 +21,7 @@ type server struct {
 }
 
 type GameResponse struct {
-    Words []string `json:"words"`
+    Words []game.WordData`json:"words"`
     GameId int `json:"id"`
     TurnsLeft int `json:"moveLeft"`
     Status int `json:"status"`
@@ -135,7 +136,6 @@ func playerOnly(h http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         cookie, err := r.Cookie("the-connect-game")
 
-        log.Print(cookie.Value)
         if err != nil {
             log.Print(err)
         }
@@ -210,7 +210,7 @@ func createGame(w http.ResponseWriter, _ *http.Request) error {
 
     gr := &GameResponse{
         GameId: id,
-        Words: game.Words(),
+        Words: game.WordsWithData(),
         TurnsLeft: game.MaxTurns - game.Metadata.WrongTurns,
         Status: int(game.CheckStatus()),
     }
@@ -251,44 +251,43 @@ func updateGame(w http.ResponseWriter, r *http.Request) error {
         return nil
     }
 
-    body := &gamePost{}
-    err := json.NewDecoder(r.Body).Decode(body)
+    err := r.ParseForm()
 
     if err != nil {
         return err
     }
 
+    var words [4]string
+
+    for k, v := range r.Form {
+        if strings.EqualFold(k,"words") {
+            copy(words[:], v[:4])
+        }
+    }
+
     data.mch <- game.Move{
-        Words: body.Words,
+        Words: words,
     }
 
     status := <- data.sch
 
-    // log.Println(data.game.WordsWithData())
+    tmpl := template.Must(template.ParseFiles("templates/fragments/game-board.html"))
 
-    moveRes := &moveResponse{
-        Correct: status.Status.Metadata.Correct,
-        GameId:  id,
+    gr := &GameResponse{
+        GameId: id,
+        Words: data.game.WordsWithData(),
         TurnsLeft: data.game.MaxTurns - data.game.Metadata.WrongTurns,
         Status: status.Status.Status().Enum(),
+        Move: struct{Correct bool "json:\"correct\""; Words []string "json:\"words,omitempty\""} {
+            Correct: status.Status.Metadata.Correct,
+            Words: status.Status.Metadata.Move.Words[:],
+        },
     }
 
+    log.Println(data.game.WordsWithData())
 
-    if moveRes.Correct {
-        moveRes.Subject = status.Status.Metadata.Subject.Name
-        moveRes.Words = status.Status.Metadata.Move.Words[:]
-    }
-
-    w.Header().Add("Content-Type", "application/json")
-
-    res, err := json.Marshal(moveRes)
-
-    if err != nil {
-        return err
-    }
-
-    log.Println(id)
-    w.Write(res)
+    w.Header().Add("Content-Type", "text/html")
+    tmpl.Execute(w, gr)
 
     return nil
 }

@@ -42,18 +42,30 @@
 
             if (shouldAdd && len < 4) {
                 m[next] = word
+                len++
             }
+
+            return len
         }
 
-        document.querySelector(".game").addEventListener("click", function (evt) {
+        function reset(m) {
+            m.forEach((w, i) => m[i] = undefined)
+        }
+
+        htmx.find(".game").addEventListener("click", function (evt) {
             const piece = evt.target.closest(".game-board li")
 
             if (piece) {
                 const word = piece.attributes.getNamedItem("data-value").value
 
-                console.log(`Selected ${word}`)
-                toggleSelection(moves, word)
+                const selected = toggleSelection(moves, word)
                 console.log(`Moves: ${moves}`)
+
+                if (selected == 4) {
+                    console.log(moves)
+                    htmx.trigger(".game-board", "moveSelected", { words: moves })
+                    reset(moves)
+                }
             }
         })
         </script>
