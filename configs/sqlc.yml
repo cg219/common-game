@@ -1,0 +1,16 @@
+version: "2"
+sql:
+  - engine: "sqlite"
+    queries: "./words-queries.sql"
+    schema: "./words-schema.sql"
+    gen:
+      go:
+        package: storage
+        out: ../internal/wordsdb
+  - engine: "sqlite"
+    queries: "./subjects-queries.sql"
+    schema: "./subjects-schema.sql"
+    gen:
+      go:
+        package: storage
+        out: ../internal/subjectsdb

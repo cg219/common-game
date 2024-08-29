@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS words (
+    id INT PRIMARY KEY,
+    word TEXT NOT NULL
+)
