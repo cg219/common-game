@@ -10,9 +10,11 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
 	_ "modernc.org/sqlite"
 
-	storage "github.com/cg219/common-game/internal/wordsdb"
+	"github.com/cg219/common-game/internal/subjectsdb"
+	"github.com/cg219/common-game/internal/wordsdb"
 )
 
 type GenerateParams struct {
@@ -29,43 +31,15 @@ type GenerateResponse struct {
     Response string `json:"response"`
 }
 
-func GenerateFromLLM(url string) (*GenerateResponse, error) {
-    // body := []byte(`{"model":"llama3.1","prompt":"Describe the sky as you would to a blind person"}`)
-    params := &GenerateParams{
-        Model: "llama3.1",
-        // Prompt: "Create a list of 10000 words from the dictionary and urban dictionary. From these 10000, create 15 groups of 4 words that relate to a detailed category. Return this in a JSON format where that is an array with a 'category' key for the category and a 'words' key that is an array of the 4 associated words.",
-        Prompt: "Create a list of 10000 unique English words that can also include proper nouns. Return this in a JSON format where that is an array of the words generated in the previous step and place it under the key 'words'.",
-        System: "You are an expert of the English Language.",
-        Format: "json",
-        Stream: false,
-    }
+type SubjectsResponse struct {
+    List []struct {
+        Subject string `json:"subject"`
+        Words []string `json:"words"`
+    } `json:"list"`
+}
 
-    body, err := json.Marshal(params)
-
-    if err != nil {
-        panic(err)
-    }
-    
-    // prompt :=
-    resp, err := http.Post(url, "application/json", bytes.NewBuffer(body))
-
-    if err != nil {
-        return nil, err
-    }
-
-    defer resp.Body.Close()
-
-    data := &GenerateResponse{}
-
-    decoder := json.NewDecoder(resp.Body)
-
-    err = decoder.Decode(&data)
-
-    if err != nil {
-        panic(err)
-    }
-
-    return data, nil
+type SubjectWordsJson struct {
+    Words []string `json:"words"`
 }
 
 func GenerateSubjects(url string) error {
@@ -75,18 +49,37 @@ func GenerateSubjects(url string) error {
         return err
     }
 
-    db, err := sql.Open("sqlite", "../words.db")
-
+    sddl, err := os.ReadFile("../configs/subjects-schema.sql")
     if err != nil {
         return err
     }
 
-    if _, err := db.ExecContext(ctx, string(ddl)); err != nil {
+    wdb, err := sql.Open("sqlite", "../words.db")
+    if err != nil {
         return err
     }
 
-    q := storage.New(db)
-    defer db.Close()
+    defer wdb.Close()
+
+    sdb, err := sql.Open("sqlite", "../subjects.db")
+    if err != nil {
+        return err
+    }
+
+    defer sdb.Close()
+
+    if _, err := wdb.ExecContext(ctx, string(ddl)); err != nil {
+        return err
+    }
+
+    if _, err := sdb.ExecContext(ctx, string(sddl)); err != nil {
+        return err
+    }
+
+    q := wordsdb.New(wdb)
+    sq := subjectsdb.New(sdb)
+
+    fmt.Println(sq)
 
     words, err := q.GetWords(ctx)
 
@@ -96,43 +89,43 @@ func GenerateSubjects(url string) error {
 
     example := `{ "list": [
         {
-            "subject": "Music Festival",
-            "words": ["concertina", "giggle", "gibbous", "glamour"]
+            "subject": "Venues",
+            "words": ["arena", "stadium", "club", "festival"]
         },
         {
-            "subject": "Space Exploration",
-            "words": ["galaxies", "geese", "gravity", "habitat"]
+            "subject": "Nuts",
+            "words": ["peanut", "cashew", "almond", "pecan"]
         },
         {
-            "subject": "Foodie Culture",
-            "words": ["biscuit", "cantaloupe", "chocolate", "honey"]
+            "subject": "Cake Ingredients",
+            "words": ["egg", "flour", "vanilla", "chocolate"]
         },
         {
-            "subject": "Artistic Expression",
-            "words": ["canvas", "coloratura", "painter", "sculptor"]
+            "subject": "Creative Expression",
+            "words": ["painter", "musician", "author", "sculptor"]
         },
         {
-            "subject": "Travel Adventure",
-            "words": ["backpack", "beachball", "passport", "trekking"]
+            "subject": "Ways to Travel",
+            "words": ["plane", "train", "boat", "bicycle"]
         },
         {
-            "subject": "Sports and Fitness",
-            "words": ["gymnast", "marathon", "runner", "weightlifter"]
+            "subject": "Sports Events",
+            "words": ["gymnastics", "track", "basketball", "baseball"]
         },
         {
             "subject": "Environmental Awareness",
-            "words": ["conservation", "ecosystem", "recycle", "sustainability"]
+            "words": ["conservation", "ecosystem", "recycle", "reservoir"]
         },
         {
             "subject": "Culinary Delights",
-            "words": ["butterfly", "caterpillar", "honeycomb", "jam"]
+            "words": ["cake", "croissant", "wellington", "crepe"]
         },
         {
-            "subject": "Historical Significance",
+            "subject": "Deals With The Past",
             "words": ["archaeologist", "historian", "museum", "relic"]
         },
         {
-            "subject": "Scientific Discovery",
+            "subject": "Scientific",
             "words": ["atom", "element", "experiment", "lab"]
         },
         {
@@ -140,29 +133,29 @@ func GenerateSubjects(url string) error {
             "words": ["couture", "designer", "fashionista", "model"]
         },
         {
-            "subject": "Cultural Exchange",
-            "words": ["diplomat", "embassy", "language", "translation"]
+            "subject": "Gaming",
+            "words": ["twitch", "console", "handheld", "controller"]
         },
         {
             "subject": "Outdoor Activities",
-            "words": ["camping", "hiking", "outdoor", "survival"]
+            "words": ["camping", "hiking", "skydiving", "walking"]
         },
         {
-            "subject": "Educational Institutions",
+            "subject": "Educational",
             "words": ["classroom", "library", "professor", "university"]
         },
         {
-            "subject": "Social Justice",
-            "words": ["activist", "charity", "human rights", "protest"]
+            "subject": "Weather Conditions",
+            "words": ["rainy", "sunny", "cloudy", "clear"]
         }]}`
-    prompt := fmt.Sprintf("Given this list of words: '%s'.\n\nCreate 30 unique groupings of 4 words from the previous list given and create a subject for them that relates them to one another. The words chosenshould not be in the subject. Make sure the words chosen only come from the given list. Do not use other words outside the list.\n\nHere is an example of the output:\n\n%s\n\nDo not use any of the subjects from the example. Return only the JSON and nothing else.", strings.Join(words, ", "), example)
+    prompt := fmt.Sprintf("Given this list of words: '%s'.\n\nCreate 30 unique groupings of 4 words from the previous list given and create a subject for them that relates them to one another. The words chosen should not be in the subject. Make sure the words chosen only come from the given list. Do not use other words outside the given list.\n\nHere is an example of the output:\n\n%s\n\nDo not use any of the subjects from the example. Do no put 'Types of' in the subject. Return only the JSON and nothing else.", strings.Join(words, ", "), example)
 
     params := &GenerateParams{
         Model: "cllama",
         Prompt: prompt,
-        System: "You are an expert of the English Language, who spends a lot of time consuming pop and hip hop culture through social media and entertainment.",
+        System: "You are an expert of the English Language, who spends a lot of time consuming pop and hip hop culture through social media and entertainment. Do not hallucinate.",
         Format: "",
-        Stream: true,
+        Stream: false,
     }
 
     body, err := json.Marshal(params)
@@ -179,48 +172,31 @@ func GenerateSubjects(url string) error {
 
     defer resp.Body.Close()
 
-    scanner := bufio.NewScanner(resp.Body)
-    buffer := make([]byte, 0, 512000)
-    scanner.Buffer(buffer, 512000)
-    // ch := make(chan string, 32)
+    data := &GenerateResponse{}
 
-    // go func() {
-    //     var word strings.Builder
-    //     
-    //     for w := range ch {
-    //         if !strings.Contains(w, ",") {
-    //             word.WriteString(w)
-    //             continue
-    //         }
-    //
-    //         tw := strings.Split(word.String(), ",")
-    //         word.Reset()
-    //
-    //         if len(tw) > 1 {
-    //             s := strings.TrimSpace(tw[0])
-    //             q.SaveWord(ctx, s)
-    //             word.WriteString(tw[1])
-    //         } else {
-    //             s := tw[0]
-    //             q.SaveWord(ctx, strings.TrimSpace(s))
-    //         }
-    //     }
-    // }()
-
-    for scanner.Scan() {
-        data := &GenerateResponse{}
-        bts := scanner.Bytes()
-
-        if err := json.Unmarshal(bts, data); err != nil {
-            panic(err)
-        }
-
-        fmt.Print(data.Response)
-
-        // ch <- data.Response 
+    if err := json.NewDecoder(resp.Body).Decode(data); err != nil {
+        panic(err)
     }
 
-    // close(ch)
+    subjects := &SubjectsResponse{}
+
+    if err := json.Unmarshal([]byte(data.Response), subjects); err != nil {
+        panic(err)
+    }
+
+    for _, v := range subjects.List {
+        wd := &SubjectWordsJson{ Words: v.Words }
+
+        w, err := json.Marshal(wd); 
+
+        if err != nil {
+            panic(err)
+        }
+        
+        s := subjectsdb.SaveSubjectParams{ Subject: v.Subject, Words: string(w)}
+        sq.SaveSubject(ctx, s)
+    }
+
     return err
 }
 
@@ -241,12 +217,13 @@ func GenerateWords(url string) error {
         return err
     }
 
-    q := storage.New(db)
+    q := wordsdb.New(db)
+    fmt.Println(q)
     defer db.Close()
 
     params := &GenerateParams{
         Model: "cllama",
-        Prompt: "Create a list of 50 common English words that start with 'u', longer than 2 characters without repeating any. The response should ONLY be a comma separated list without any pretext.",
+        Prompt: "Create a list of 30 common English words that start with the letter 'a', longer than 2 characters without repeating any. The response should ONLY be a comma separated list without any pretext.",
         System: "You are an expert of the English Language, who spends a lot of time consuming pop and hip hop culture through social media and entertainment.",
         Format: "",
         Stream: true,

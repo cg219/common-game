@@ -5,12 +5,12 @@ sql:
     schema: "./words-schema.sql"
     gen:
       go:
-        package: storage
+        package: wordsdb
         out: ../internal/wordsdb
   - engine: "sqlite"
     queries: "./subjects-queries.sql"
     schema: "./subjects-schema.sql"
     gen:
       go:
-        package: storage
+        package: subjectsdb
         out: ../internal/subjectsdb

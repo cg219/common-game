@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS subjects (
-    id INT PRIMARY KEY,
+    id INTEGER PRIMARY KEY,
     subject TEXT NOT NULL,
     words TEXT NOT NULL,
-    used INT DEFAULT 0,
-    correct INT DEFAULT 0
+    used INTEGER DEFAULT 0,
+    correct INTEGER DEFAULT 0
 )

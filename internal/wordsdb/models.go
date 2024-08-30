@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.27.0
 
-package storage
+package wordsdb
 
 type Word struct {
 	ID   int64

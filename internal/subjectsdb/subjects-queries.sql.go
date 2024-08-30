@@ -3,14 +3,14 @@
 //   sqlc v1.27.0
 // source: subjects-queries.sql
 
-package storage
+package subjectsdb
 
 import (
 	"context"
 )
 
 const getSubjects = `-- name: GetSubjects :many
-SELECT (wubject, words)
+SELECT (subject, words)
 FROM subjects
 `
 

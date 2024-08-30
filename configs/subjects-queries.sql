@@ -3,5 +3,5 @@ INSERT INTO subjects(subject, words)
 VALUES (?, ?);
 
 -- name: GetSubjects :many
-SELECT (wubject, words)
+SELECT (subject, words)
 FROM subjects

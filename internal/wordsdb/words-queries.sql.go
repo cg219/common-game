@@ -3,7 +3,7 @@
 //   sqlc v1.27.0
 // source: words-queries.sql
 
-package storage
+package wordsdb
 
 import (
 	"context"
