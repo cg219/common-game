@@ -79,8 +79,6 @@ func GenerateSubjects(url string) error {
     q := wordsdb.New(wdb)
     sq := subjectsdb.New(sdb)
 
-    fmt.Println(sq)
-
     words, err := q.GetWords(ctx)
 
     if err != nil {
