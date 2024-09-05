@@ -37,6 +37,56 @@ func (q *Queries) GetSubjects(ctx context.Context) ([]interface{}, error) {
 	return items, nil
 }
 
+const getSubjectsForGame = `-- name: GetSubjectsForGame :many
+WITH randomrows AS (
+    SELECT id, subject, words
+    FROM subjects
+    ORDER BY random()
+    LIMIT 4
+),
+single_words AS (
+    SELECT randomrows.id, json_array(json_each.value) AS stringv
+    FROM randomrows, json_each(randomrows.words)
+)
+SELECT id, subject, words
+FROM randomrows
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM single_words l1
+    JOIN single_words l2 ON l1.stringv = l2.stringv AND l1.id != l2.id
+    WHERE l1.id = randomrows.id
+)
+`
+
+type GetSubjectsForGameRow struct {
+	ID      int64
+	Subject string
+	Words   string
+}
+
+func (q *Queries) GetSubjectsForGame(ctx context.Context) ([]GetSubjectsForGameRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSubjectsForGame)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSubjectsForGameRow
+	for rows.Next() {
+		var i GetSubjectsForGameRow
+		if err := rows.Scan(&i.ID, &i.Subject, &i.Words); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const saveSubject = `-- name: SaveSubject :exec
 INSERT INTO subjects(subject, words)
 VALUES (?, ?)
