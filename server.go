@@ -2,19 +2,23 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cg219/common-game/game"
+	"github.com/cg219/common-game/internal/subjectsdb"
 	"github.com/golang-jwt/jwt/v5"
+	_ "modernc.org/sqlite"
 )
 
 type server struct {
@@ -68,6 +72,8 @@ type MHandlerFunc func(w http.ResponseWriter, r *http.Request) error
 type ContextKey int
 
 var store map[int]*storeData
+var globalQuery *subjectsdb.Queries
+var globalContext context.Context
 
 const (
     GameId ContextKey = iota
@@ -103,8 +109,31 @@ func startServer() error {
     srv := newServer()
     store = make(map[int]*storeData)
 
+    globalContext = context.Background()
+    ddl, err := os.ReadFile("./configs/subjects-schema.sql")
+    if err != nil {
+        return err
+    }
+
+    db, err := sql.Open("sqlite", "subjects.db")
+    if err != nil {
+        return err
+    }
+
+    defer db.Close()
+
+    if _, err := db.ExecContext(globalContext, string(ddl)); err != nil {
+        return err
+    }
+
+    globalQuery = subjectsdb.New(db)
+
+    if err != nil {
+        return err
+    }
+
     srv.mux.HandleFunc("GET /", getHome())
-    srv.mux.Handle("GET /sf/*", http.StripPrefix("/sf", http.FileServer(http.Dir("./web"))))
+    srv.mux.Handle("GET /sf/", http.StripPrefix("/sf", http.FileServer(http.Dir("./web"))))
     srv.mux.Handle("POST /api/game", handle(createGame))
     srv.mux.Handle("PUT /api/game", playerOnly(handle(updateGame)))
 
@@ -186,7 +215,12 @@ func playerOnly(h http.Handler) http.Handler {
 }
 
 func createGame(w http.ResponseWriter, _ *http.Request) error {
-    game, err := game.Create()
+    gc := &game.GameConfig{
+        Q: globalQuery,
+        Ctx: globalContext,
+    }
+
+    game, err := game.Create(*gc)
 
     if err != nil {
         return err

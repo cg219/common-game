@@ -17,7 +17,7 @@ single_words AS (
     SELECT randomrows.id, json_array(json_each.value) AS stringv
     FROM randomrows, json_each(randomrows.words)
 )
-SELECT *
+SELECT id, subject, words
 FROM randomrows
 WHERE NOT EXISTS (
     SELECT 1

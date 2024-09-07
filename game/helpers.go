@@ -1,11 +1,26 @@
 package game
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
 	"time"
+
+	"github.com/cg219/common-game/internal/subjectsdb"
 )
 
-func Create() (*Game, error) {
-    return newGame(), nil
+type GameConfig struct {
+    Q *subjectsdb.Queries
+    Ctx context.Context
+}
+
+type wordsResponse struct {
+    Words []string `json:"words"`
+}
+
+func Create(ng GameConfig) (*Game, error) {
+    return newGame(ng), nil
 }
 
 func StartWithGame(g *Game) <-chan Status {
@@ -20,13 +35,7 @@ func start(g *Game) <-chan Status {
     var game *Game
 
     if g == nil {
-        var err error
-
-        g, err = Create()
-
-        if err != nil {
-            panic(err)
-        }
+        log.Fatalf("Oops: Missing Game")
     }
 
     game = g
@@ -46,8 +55,43 @@ func start(g *Game) <-chan Status {
     return output
 }
 
-func newGame() *Game {
+func newGame(ng GameConfig) *Game {
     var subjects [4]Subject
+
+    if ng.Q != nil {
+        res, err := ng.Q.GetSubjectsForGame(ng.Ctx)
+
+        if err != nil {
+            log.Fatalf("Oops: %w", err)
+        }
+
+        for i, v := range res {
+            var words [4]string
+            wr := &wordsResponse{}
+
+            err := json.Unmarshal([]byte(fmt.Sprint(v.Words)), wr)
+
+            if err != nil {
+                log.Fatalf("Oops: %w", err)
+            }
+
+            for j, lv := range wr.Words { 
+                words[j] = lv
+            }
+
+            subjects[i] = Subject{ Name: v.Subject, Words: words }
+        }
+
+        return &Game{
+            Metadata: struct{Player; Stats}{
+                Player: Player{},
+                Stats: Stats{},
+            },
+            MaxTurns: 4,
+            Subjects: subjects,
+            HealthTickInvteral: 2 * time.Minute,
+        }
+    }
 
     subjects[0] = Subject{
         Name: "Days of the Week",
