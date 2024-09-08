@@ -18,7 +18,7 @@ import (
 	"github.com/cg219/common-game/game"
 	"github.com/cg219/common-game/internal/subjectsdb"
 	"github.com/golang-jwt/jwt/v5"
-	_ "modernc.org/sqlite"
+    _ "github.com/tursodatabase/go-libsql"
 )
 
 type server struct {
@@ -115,7 +115,7 @@ func startServer() error {
         return err
     }
 
-    db, err := sql.Open("sqlite", "subjects.db")
+    db, err := sql.Open("libsql", "file:./subjects.db")
     if err != nil {
         return err
     }

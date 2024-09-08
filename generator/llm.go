@@ -11,7 +11,7 @@ import (
 	"os"
 	"strings"
 
-	_ "modernc.org/sqlite"
+    _ "github.com/tursodatabase/go-libsql"
 
 	"github.com/cg219/common-game/internal/subjectsdb"
 	"github.com/cg219/common-game/internal/wordsdb"
@@ -54,14 +54,14 @@ func GenerateSubjects(url string) error {
         return err
     }
 
-    wdb, err := sql.Open("sqlite", "../words.db")
+    wdb, err := sql.Open("libsql", "file:../words.db")
     if err != nil {
         return err
     }
 
     defer wdb.Close()
 
-    sdb, err := sql.Open("sqlite", "../subjects.db")
+    sdb, err := sql.Open("libsql", "file:../subjects.db")
     if err != nil {
         return err
     }

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/cg219/common-game/internal/subjectsdb"
-	_ "modernc.org/sqlite"
+    _ "github.com/tursodatabase/go-libsql"
 )
 
 func TestGameSubjects(t *testing.T) {
@@ -18,7 +18,7 @@ func TestGameSubjects(t *testing.T) {
         t.Fatalf("Error: %s", err)
     }
 
-    db, err := sql.Open("sqlite", "subjects.db")
+    db, err := sql.Open("libsql", "file:./subjects.db")
     if err != nil {
         t.Fatalf("Error: %s", err)
     }
