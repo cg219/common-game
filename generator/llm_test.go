@@ -15,14 +15,15 @@ func ex(t *testing.T) {
 //         t.Fatalf("Error occured during generation: %v", err)
 //     }
 // }
-
-// func TestGenerateSubjects(t *testing.T) {
-//     err := GenerateSubjects("http://localhost:11434/api/generate")
 //
-//     if err != nil {
-//         t.Fatalf("Error occured during generation: %v", err)
-//     }
-// }
+func TestGenerateSubjects(t *testing.T) {
+    err := GenerateSubjects("http://localhost:11434/api/generate")
+    // err := GenerateWords("http://localhost:11434/api/generate")
+
+    if err != nil {
+        t.Fatalf("Error occured during generation: %v", err)
+    }
+}
 
 // func TestGetWords(t *testing.T) {
 //     ctx := context.Background()

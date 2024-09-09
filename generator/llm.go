@@ -78,12 +78,18 @@ func GenerateSubjects(url string) error {
 
     q := wordsdb.New(wdb)
     sq := subjectsdb.New(sdb)
+    fmt.Println(sq)
 
-    words, err := q.GetWords(ctx)
+    _, err = q.GetWords(ctx)
 
     if err != nil {
         return err
     }
+
+    // words := "The Breakfast Club, The Big Lebowski, The Shawshank Redemption, The Silence of the Lambs, The English Patient, The Sixth Sense, The Princess Bride, The Green Mile, The Godfather, The Good, The Bad and the Ugly, The Bourne Identity, The Dark Knight, The Lord of the Rings, The Fellowship of the Ring, The Two Towers, The Return of the King, The Curious Case of Benjamin Button, The Prestige, The Aviator, The Departed, The Pianist, The Lives of Others, The Hurt Locker, The Social Network, The Wolf of Wall Street, The Grand Budapest Hotel, The Imitation Game, The Theory of Everything, The Martian, The Revenant, The Shape of Water, The Irishman, The Favourite, The Lighthouse, The Souvenir, The Beach, The Perks of Being a Wallflower, The Spectre, The Huntsman: Winter's War, The Nice Guys, The Hateful Eight, The Girl with the Dragon Tattoo"
+    // words := "Fargo, Flashback, Frailty, Frighteners, Galapagos, Gamer, Gigli, Gnomeo, Gone, Gorillas, Gravity, Gremlins, Hackers, Holes, Honey, Hoodwinked, Hostel, Hotshot, Houseboat, Howl, Hunger, Imitation, Insidious, Intruder, Jumper, Kicking, Killshot, Kindergarten, Ladykillers, Lastex, Liar, Luckytown, Madhouse, Magnolia, Malice, Marathon, Max, Misery, Mockingbird, Moneyball, Monster, Mortal, Mr., Mummy, Narcos, Nighthawks, Nomad, Norma, Oblivion, Ocean, Omen, Original, Outlaw, Pulp, Punchline, Quicksilver, Ransom, Razorback, Rebound, Redbox, Restless, Revenge, Ripley, Roadhouse, RoboCop, Rocky, Romancing, Rushmore, Sabotage, Salute, Sanctum, Savage, Sawdust, Shaft, Shelter, Shutter, Sideways, Slaughterhouse, Sleuth, Smokin', Snatch, Speed, Stakeout, Stalker, Stranger, Streetcar, Suburbia, Sunshine, Sweet, Switchback, Tank, Takedown, Tango, Taxman, Tempest, Terror, Thinner, Threshold, Thunderbolt, Torn, Traffic, Trance, Triangle, Troublemaker, Truth, Twist, Twister, Unforgiven, Vengeance, Vigilante, Violent, Virtuoso, Wakefield, Waking, Walkabout, Warlock, Waterboy, Waterloo, Webbed, Weekend, Werewolf, Whiplash, Whiteout, Wichita, Wilder, Windtalkers, Wishmaster, Witness"
+
+    words := "Tweets, Follows, Likes, Shares, Comments, Posts, Updates, Status, Profile, Bio, Handle, Tagged, Mentions, Hashtags, Filters, Effects, Emojis, GIFs, Videos, Clips, LiveStream, Reactions, Views, Engagement, Follower, Unfollow, Block, Report, Flag, Spam, Trolls, Cyberbullying, Online, Presence, Identity, Reputation, Branding, Marketing, Influencer, Sponsorship, Partnership, Collaboration, Community, Forum, Discussion, Polls, Quizzes, Games, Challenges, Viral, Trending, Meme, Joke, Humor, Satire, Irony, Sarcasm, Wit, Censorship, Freedom, Speech, Expression, Opinion, Perspective, Viewpoint, Insight, Analysis, Criticism, Review, Rating, Recommendation, Endorsement, Affiliate, Link, URL, Bookmark, Favorite, Shareable, Clickbait, Headline, Caption, Description, Keyword, SEO, Optimization, Algorithm, Feed, Timeline, ProfilePic, Avatar, Username, Password, Security, Safety, Privacy, Policy, Terms"
 
     example := `{ "list": [
         {
@@ -146,7 +152,7 @@ func GenerateSubjects(url string) error {
             "subject": "Weather Conditions",
             "words": ["rainy", "sunny", "cloudy", "clear"]
         }]}`
-    prompt := fmt.Sprintf("Given this list of words: '%s'.\n\nCreate 30 unique groupings of 4 words from the previous list given and create a subject for them that relates them to one another. The words chosen should not be in the subject. Make sure the words chosen only come from the given list. Do not use other words outside the given list.\n\nHere is an example of the output:\n\n%s\n\nDo not use any of the subjects from the example. Do no put 'Types of' in the subject. Return only the JSON and nothing else.", strings.Join(words, ", "), example)
+    prompt := fmt.Sprintf("Given this list of words: '%s'.\n\nCreate 50 unique groupings of 4 words from the previous list given and create a subject for them that relates them to one another. The words chosen should not be in the subject. Make sure the words chosen only come from the given list. Do not use other words outside the given list.\n\nHere is an example of the output:\n\n%s\n\nDo not use any of the subjects from the example. Do no put 'Types of' in the subject. Return only the JSON and nothing else.", words, example)
 
     params := &GenerateParams{
         Model: "cllama",
@@ -178,22 +184,24 @@ func GenerateSubjects(url string) error {
 
     subjects := &SubjectsResponse{}
 
+    fmt.Println(data.Response)
+
     if err := json.Unmarshal([]byte(data.Response), subjects); err != nil {
         panic(err)
     }
 
-    for _, v := range subjects.List {
-        wd := &SubjectWordsJson{ Words: v.Words }
-
-        w, err := json.Marshal(wd); 
-
-        if err != nil {
-            panic(err)
-        }
-        
-        s := subjectsdb.SaveSubjectParams{ Subject: v.Subject, Words: string(w)}
-        sq.SaveSubject(ctx, s)
-    }
+    // for _, v := range subjects.List {
+    //     wd := &SubjectWordsJson{ Words: v.Words }
+    //
+    //     w, err := json.Marshal(wd); 
+    //
+    //     if err != nil {
+    //         panic(err)
+    //     }
+    //     
+    //     s := subjectsdb.SaveSubjectParams{ Subject: v.Subject, Words: string(w)}
+    //     sq.SaveSubject(ctx, s)
+    // }
 
     return err
 }
@@ -205,7 +213,7 @@ func GenerateWords(url string) error {
         return err
     }
 
-    db, err := sql.Open("sqlite", "../words.db")
+    db, err := sql.Open("libsql", "file:../words.db")
 
     if err != nil {
         return err
@@ -221,7 +229,7 @@ func GenerateWords(url string) error {
 
     params := &GenerateParams{
         Model: "cllama",
-        Prompt: "Create a list of 30 common English words that start with the letter 'a', longer than 2 characters without repeating any. The response should ONLY be a comma separated list without any pretext.",
+        Prompt: "Create a list of 75 words related to social media where the word is longer than 2 characters but less than 15 without repeating any movies. The response should ONLY be a comma separated list without any pretext.",
         System: "You are an expert of the English Language, who spends a lot of time consuming pop and hip hop culture through social media and entertainment.",
         Format: "",
         Stream: true,
@@ -259,12 +267,12 @@ func GenerateWords(url string) error {
             word.Reset()
 
             if len(tw) > 1 {
-                s := strings.TrimSpace(tw[0])
-                q.SaveWord(ctx, s)
+                // s := strings.TrimSpace(tw[0])
+                // q.SaveWord(ctx, s)
                 word.WriteString(tw[1])
             } else {
-                s := tw[0]
-                q.SaveWord(ctx, strings.TrimSpace(s))
+                // s := tw[0]
+                // q.SaveWord(ctx, strings.TrimSpace(s))
             }
         }
     }()
