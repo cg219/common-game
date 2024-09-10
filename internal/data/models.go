@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.27.0
 
-package subjectsdb
+package data
 
 import (
 	"database/sql"
@@ -14,4 +14,9 @@ type Subject struct {
 	Words   string
 	Used    sql.NullInt64
 	Correct sql.NullInt64
+}
+
+type Word struct {
+	ID   int64
+	Word string
 }

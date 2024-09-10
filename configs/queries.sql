@@ -1,10 +1,17 @@
+-- name: GetWords :many
+SELECT word
+FROM words;
+
+-- name: SaveWord :exec
+INSERT INTO words (word)
+VALUES(?);
+
 -- name: SaveSubject :exec
 INSERT INTO subjects(subject, words)
 VALUES (?, ?);
 
 -- name: GetSubjects :many
-SELECT (subject, words)
-FROM subjects;
+SELECT subject, words FROM subjects;
 
 -- name: GetSubjectsForGame :many
 WITH randomrows AS (
@@ -14,7 +21,7 @@ WITH randomrows AS (
     LIMIT 4
 ),
 single_words AS (
-    SELECT randomrows.id, json_array(json_each.value) AS stringv
+    SELECT randomrows.id, json_extract(json_each.value) AS stringv
     FROM randomrows, json_each(randomrows.words)
 )
 SELECT id, subject, words

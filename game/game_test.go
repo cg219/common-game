@@ -1,12 +1,13 @@
 package game
 
 import (
+	"context"
 	"testing"
 	"time"
 )
 
 func TestGame(t *testing.T) {
-    game, err := Create()
+    game, err := Create(GameConfig{ Q: nil, Ctx: context.Background()})
 
     if err != nil {
         t.Fatalf("error: %s", err)
@@ -141,8 +142,8 @@ func TestGame(t *testing.T) {
             },
         }
 
-        input := make(chan Move)
-        statuses := Start(input)
+        game.Reset()
+        statuses, input := game.Run()
         step := 0
 
         go func() {
@@ -154,8 +155,8 @@ func TestGame(t *testing.T) {
         }()
 
         for s := range statuses {
-            if s.Status() != test.outcomes[step] {
-                t.Fatalf("\nMove: %s\nexpected %s; got %s", test.moves[step].Words, test.outcomes[step], s.Status())
+            if s.Status.Status() != test.outcomes[step] {
+                t.Fatalf("\nMove: %s\nexpected %s; got %s", test.moves[step].Words, test.outcomes[step], s.Status.Status())
             }
             step++
         }

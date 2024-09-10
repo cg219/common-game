@@ -7,18 +7,18 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cg219/common-game/internal/subjectsdb"
+	"github.com/cg219/common-game/internal/data"
     _ "github.com/tursodatabase/go-libsql"
 )
 
 func TestGameSubjects(t *testing.T) {
     ctx := context.Background()
-    ddl, err := os.ReadFile("./configs/subjects-schema.sql")
+    ddl, err := os.ReadFile("./configs/schema.sql")
     if err != nil {
         t.Fatalf("Error: %s", err)
     }
 
-    db, err := sql.Open("libsql", "file:./subjects.db")
+    db, err := sql.Open("libsql", "file:./database.db")
     if err != nil {
         t.Fatalf("Error: %s", err)
     }
@@ -29,7 +29,7 @@ func TestGameSubjects(t *testing.T) {
         t.Fatalf("Error: %s", err)
     }
 
-    sq := subjectsdb.New(db)
+    sq := data.New(db)
     res, err := sq.GetSubjectsForGame(ctx)
 
     if err != nil {

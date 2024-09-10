@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/cg219/common-game/game"
-	"github.com/cg219/common-game/internal/subjectsdb"
+	"github.com/cg219/common-game/internal/data"
 	"github.com/golang-jwt/jwt/v5"
     _ "github.com/tursodatabase/go-libsql"
 )
@@ -72,7 +72,7 @@ type MHandlerFunc func(w http.ResponseWriter, r *http.Request) error
 type ContextKey int
 
 var store map[int]*storeData
-var globalQuery *subjectsdb.Queries
+var globalQuery *data.Queries
 var globalContext context.Context
 
 const (
@@ -110,12 +110,12 @@ func startServer() error {
     store = make(map[int]*storeData)
 
     globalContext = context.Background()
-    ddl, err := os.ReadFile("./configs/subjects-schema.sql")
+    ddl, err := os.ReadFile("./configs/schema.sql")
     if err != nil {
         return err
     }
 
-    db, err := sql.Open("libsql", "file:./subjects.db")
+    db, err := sql.Open("libsql", "file:./database.db")
     if err != nil {
         return err
     }
@@ -126,7 +126,7 @@ func startServer() error {
         return err
     }
 
-    globalQuery = subjectsdb.New(db)
+    globalQuery = data.New(db)
 
     if err != nil {
         return err

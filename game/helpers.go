@@ -7,11 +7,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/cg219/common-game/internal/subjectsdb"
+	"github.com/cg219/common-game/internal/data"
 )
 
 type GameConfig struct {
-    Q *subjectsdb.Queries
+    Q *data.Queries
     Ctx context.Context
 }
 
@@ -62,21 +62,21 @@ func newGame(ng GameConfig) *Game {
         res, err := ng.Q.GetSubjectsForGame(ng.Ctx)
 
         if err != nil {
-            log.Fatalf("Oops: %w", err)
+            log.Fatalf("Oops: %s", err)
         }
+
+        fmt.Println(res)
 
         for i, v := range res {
             var words [4]string
-            wr := &wordsResponse{}
+            var tmp []interface{}
 
-            err := json.Unmarshal([]byte(fmt.Sprint(v.Words)), wr)
-
-            if err != nil {
-                log.Fatalf("Oops: %w", err)
+            if err := json.Unmarshal([]byte(v.Words), &tmp); err != nil {
+                log.Fatalf("Oops: Missing Game")
             }
 
-            for j, lv := range wr.Words { 
-                words[j] = lv
+            for j, lv := range tmp { 
+                words[j] = lv.(string)
             }
 
             subjects[i] = Subject{ Name: v.Subject, Words: words }
