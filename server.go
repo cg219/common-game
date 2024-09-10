@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -18,7 +19,8 @@ import (
 	"github.com/cg219/common-game/game"
 	"github.com/cg219/common-game/internal/data"
 	"github.com/golang-jwt/jwt/v5"
-    _ "github.com/tursodatabase/go-libsql"
+	"github.com/tursodatabase/go-libsql"
+	_ "github.com/tursodatabase/go-libsql"
 )
 
 type server struct {
@@ -108,6 +110,26 @@ func (h MHandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func startServer() error {
     srv := newServer()
     store = make(map[int]*storeData)
+    dbName := os.Getenv("LOCAL_DB_NAME")
+    dbUrl := os.Getenv("TURSO_DATABASE_URL")
+    dbAuthToken := os.Getenv("TURSO_AUTH_TOKEN")
+
+    tmp, err := os.MkdirTemp("", "libdata-*")
+    if  err != nil {
+        return err
+    }
+
+    defer os.RemoveAll(tmp)
+
+    dbPath := filepath.Join(tmp, dbName)
+
+    conn, err := libsql.NewEmbeddedReplicaConnector(dbPath, dbUrl, libsql.WithAuthToken(dbAuthToken), libsql.WithSyncInterval(60))
+
+    if err != nil {
+        return err
+    }
+
+    defer conn.Close()
 
     globalContext = context.Background()
     ddl, err := os.ReadFile("./configs/schema.sql")
@@ -115,10 +137,7 @@ func startServer() error {
         return err
     }
 
-    db, err := sql.Open("libsql", "file:./database.db")
-    if err != nil {
-        return err
-    }
+    db := sql.OpenDB(conn)
 
     defer db.Close()
 
