@@ -12,6 +12,6 @@ func main() {
     }
 
     if err := startServer(); err != nil {
-        log.Fatalf("Oops: %w", err)
+        log.Fatalf("Oops: %s", err)
     }
 }

@@ -19,8 +19,8 @@ import (
 	"github.com/cg219/common-game/game"
 	"github.com/cg219/common-game/internal/data"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/pressly/goose/v3"
 	"github.com/tursodatabase/go-libsql"
-	_ "github.com/tursodatabase/go-libsql"
 )
 
 type server struct {
@@ -132,17 +132,33 @@ func startServer() error {
     defer conn.Close()
 
     globalContext = context.Background()
-    ddl, err := os.ReadFile("./configs/schema.sql")
-    if err != nil {
-        return err
-    }
+    // ddl, err := os.ReadFile("./configs/schema.sql")
+    // if err != nil {
+    //     return err
+    // }
 
     db := sql.OpenDB(conn)
 
     defer db.Close()
 
-    if _, err := db.ExecContext(globalContext, string(ddl)); err != nil {
+    // if _, err := db.ExecContext(globalContext, string(ddl)); err != nil {
+    //     return err
+    // }
+
+    provider, err := goose.NewProvider(goose.DialectSQLite3, db, os.DirFS("./migrations"))
+
+    if err != nil {
         return err
+    }
+
+    results, err := provider.Up(context.Background())
+
+    if err != nil {
+        return err
+    }
+
+    for _, r := range results {
+        log.Println("goose: %s, %s", r.Source.Path, r.Duration)
     }
 
     globalQuery = data.New(db)
