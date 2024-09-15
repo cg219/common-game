@@ -113,16 +113,14 @@ func startServer() error {
     dbName := os.Getenv("LOCAL_DB_NAME")
     dbUrl := os.Getenv("TURSO_DATABASE_URL")
     dbAuthToken := os.Getenv("TURSO_AUTH_TOKEN")
-
     tmp, err := os.MkdirTemp("", "libdata-*")
+
     if  err != nil {
         return err
     }
 
     defer os.RemoveAll(tmp)
-
     dbPath := filepath.Join(tmp, dbName)
-
     conn, err := libsql.NewEmbeddedReplicaConnector(dbPath, dbUrl, libsql.WithAuthToken(dbAuthToken), libsql.WithSyncInterval(60))
 
     if err != nil {
@@ -130,21 +128,9 @@ func startServer() error {
     }
 
     defer conn.Close()
-
     globalContext = context.Background()
-    // ddl, err := os.ReadFile("./configs/schema.sql")
-    // if err != nil {
-    //     return err
-    // }
-
     db := sql.OpenDB(conn)
-
     defer db.Close()
-
-    // if _, err := db.ExecContext(globalContext, string(ddl)); err != nil {
-    //     return err
-    // }
-
     provider, err := goose.NewProvider(goose.DialectSQLite3, db, os.DirFS("./migrations"))
 
     if err != nil {
@@ -261,10 +247,18 @@ func createGame(w http.ResponseWriter, _ *http.Request) error {
         return err
     }
 
-    id := len(store)
+    id, err := gc.Q.SaveNewGame(gc.Ctx, data.SaveNewGameParams{
+        Active: sql.NullBool{ Bool: true, Valid: true },
+        PlayerID: sql.NullInt64{ Int64: 0, Valid: true },
+        Start: sql.NullInt64{ Int64: time.Now().UTC().UnixMilli(), Valid: true },
+    })
+
+    if err != nil {
+        return err
+    }
 
     statusCh, moveCh := game.Run()
-    store[id] = &storeData{
+    store[int(id)] = &storeData{
         game: game,
         mch: moveCh,
         sch: statusCh,
@@ -286,7 +280,7 @@ func createGame(w http.ResponseWriter, _ *http.Request) error {
     tmpl := template.Must(template.ParseFiles("templates/fragments/game-board.html"))
 
     gr := &GameResponse{
-        GameId: id,
+        GameId: int(id),
         Words: game.WordsWithData(),
         TurnsLeft: game.MaxTurns - game.Metadata.WrongTurns,
         Status: int(game.CheckStatus()),
@@ -318,9 +312,14 @@ func updateGame(w http.ResponseWriter, r *http.Request) error {
         return nil
     }
 
+    gc := &game.GameConfig{
+        Q: globalQuery,
+        Ctx: globalContext,
+    }
+
     id := r.Context().Value(GameId).(int)
 
-    data, ok := store[id]
+    d, ok := store[id]
 
     if !ok {
         w.Header().Add("Content-Type", "application/json")
@@ -342,18 +341,47 @@ func updateGame(w http.ResponseWriter, r *http.Request) error {
         }
     }
 
-    data.mch <- game.Move{
+    d.mch <- game.Move{
         Words: words,
     }
 
-    status := <- data.sch
+    status := <- d.sch
+
+    switch status.Status.Status() {
+    case game.Playing:
+        gc.Q.UpdateGameTurns(gc.Ctx, data.UpdateGameTurnsParams{
+            ID: int64(id),
+            Wrong: sql.NullInt64{ Int64: int64(d.game.Metadata.WrongTurns), Valid: true },
+            Turns: sql.NullInt64{ Int64: int64(d.game.Metadata.TotalTurns), Valid: true },
+        }) 
+    case game.Win:
+        gc.Q.UpdateGameStatus(gc.Ctx, data.UpdateGameStatusParams{
+            ID: int64(id),
+            End: sql.NullInt64{ Int64: int64(time.Now().UTC().UnixMilli()), Valid: true },
+            Active: sql.NullBool{ Bool: false, Valid: true },
+            Win: sql.NullBool{ Bool: true, Valid: true },
+        })
+    case game.Lose:
+        gc.Q.UpdateGameStatus(gc.Ctx, data.UpdateGameStatusParams{
+            ID: int64(id),
+            End: sql.NullInt64{ Int64: int64(time.Now().UTC().UnixMilli()), Valid: true },
+            Active: sql.NullBool{ Bool: false, Valid: true },
+            Win: sql.NullBool{ Bool: false, Valid: true },
+        })
+    default:
+        gc.Q.UpdateGame(gc.Ctx, data.UpdateGameParams{
+            ID: int64(id),
+            Turns: sql.NullInt64{ Int64: int64(d.game.Metadata.TotalTurns), Valid: true },
+            Wrong: sql.NullInt64{ Int64: int64(d.game.Metadata.WrongTurns), Valid: true },
+        })
+    }
 
     tmpl := template.Must(template.ParseFiles("templates/fragments/game-board.html"))
 
     gr := &GameResponse{
         GameId: id,
-        Words: data.game.WordsWithData(),
-        TurnsLeft: data.game.MaxTurns - data.game.Metadata.WrongTurns,
+        Words: d.game.WordsWithData(),
+        TurnsLeft: d.game.MaxTurns - d.game.Metadata.WrongTurns,
         Status: status.Status.Status().Enum(),
         HasMove: true,
         WordExists: WordExists,

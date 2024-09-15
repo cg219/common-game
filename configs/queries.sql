@@ -32,3 +32,44 @@ WHERE NOT EXISTS (
     JOIN single_words l2 ON l1.stringv = l2.stringv AND l1.id != l2.id
     WHERE l1.id = randomrows.id
 );
+
+-- name: GetPlayerByName :one
+SELECT id, name
+FROM players
+WHERE name = ?;
+
+-- name: SavePlayer :exec
+INSERT INTO players (name)
+VALUES (?);
+
+-- name: GetPlayerById :one
+SELECT id, name
+FROM players
+WHERE id = ?;
+
+-- name: SaveNewGame :one
+INSERT INTO games(active, start, player_id)
+VALUES (?, ?, ?)
+RETURNING id;
+
+-- name: UpdateGame :exec
+UPDATE games
+SET active = ?,
+    turns = ?,
+    wrong = ?,
+    win = ?,
+    end = ?
+WHERE id = ?;
+
+-- name: UpdateGameTurns :exec
+UPDATE games
+SET turns = ?,
+    wrong = ?
+WHERE id = ?;
+
+-- name: UpdateGameStatus :exec
+UPDATE games
+SET win = ?,
+    end = ?,
+    active = ?
+WHERE id = ?;

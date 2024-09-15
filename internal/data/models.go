@@ -8,6 +8,22 @@ import (
 	"database/sql"
 )
 
+type Game struct {
+	ID       int64
+	Active   sql.NullBool
+	Turns    sql.NullInt64
+	Wrong    sql.NullInt64
+	Win      sql.NullBool
+	Start    sql.NullInt64
+	End      sql.NullInt64
+	PlayerID sql.NullInt64
+}
+
+type Player struct {
+	ID   int64
+	Name sql.NullString
+}
+
 type Subject struct {
 	ID      int64
 	Subject string
