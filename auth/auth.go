@@ -6,7 +6,7 @@ import (
 )
 
 const ChallengeSize = 32
-const UserIdSize = 16
+const UserIdSize = 32
 
 type Challenge = [ChallengeSize]byte
 type UserId = [UserIdSize]byte
@@ -48,8 +48,8 @@ func CreateRegistration(name string, display string) RegistrationResponse {
         panic(err)
     }
 
-    challengeStr := base64.StdEncoding.EncodeToString(challenge[:])
-    userStr := base64.StdEncoding.EncodeToString(userId[:])
+    challengeStr := base64.RawStdEncoding.EncodeToString(challenge[:])
+    userStr := base64.RawStdEncoding.EncodeToString(userId[:])
     reg := RegistrationResponse{
         Challenge: challengeStr,
         UserId: userStr,
