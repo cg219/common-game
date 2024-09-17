@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cg219/common-game/auth"
 	"github.com/cg219/common-game/game"
 	"github.com/cg219/common-game/internal/data"
 	"github.com/golang-jwt/jwt/v5"
@@ -55,6 +56,10 @@ type moveResponse struct {
 
 type gamePost struct {
     Words [4]string `json:"words"`
+}
+
+type regsiterPost struct {
+    Username string `json:"username"`
 }
 
 type storeData struct {
@@ -157,6 +162,8 @@ func startServer() error {
     srv.mux.Handle("GET /sf/", http.StripPrefix("/sf", http.FileServer(http.Dir("./web"))))
     srv.mux.Handle("POST /api/game", handle(createGame))
     srv.mux.Handle("PUT /api/game", playerOnly(handle(updateGame)))
+    srv.mux.Handle("POST /auth/register", handle(createRegistration))
+    srv.mux.Handle("POST /auth/verify", handle(verifyRegistration))
 
     return http.ListenAndServe(":3000", srv.mux)
 }
@@ -183,7 +190,7 @@ func getErrResponse(e error) []byte {
 
 func getHome() http.HandlerFunc {
     return func(w http.ResponseWriter, _ *http.Request) {
-        tmpl := template.Must(template.ParseFiles("templates/pages/game.html"))
+        tmpl := template.Must(template.ParseFiles("templates/pages/auth.html"))
         w.Header().Add("Content-Type", "text/html")
 
         tmpl.Execute(w, nil)
@@ -233,6 +240,31 @@ func playerOnly(h http.Handler) http.Handler {
         r = r.WithContext(ctx)
         h.ServeHTTP(w, r)
     })
+}
+
+func createRegistration(w http.ResponseWriter, r *http.Request) error {
+    w.Header().Add("Content-Type", "application/json")
+    var body regsiterPost
+
+    defer r.Body.Close()
+
+    err := json.NewDecoder(r.Body).Decode(&body)
+    if err != nil {
+        return err
+    }
+
+    reg := auth.CreateRegistration(body.Username, fmt.Sprintf("@%s", body.Username))
+
+    err =  json.NewEncoder(w).Encode(reg)
+    if err != nil {
+        return err
+    }
+
+    return nil
+}
+
+func verifyRegistration(w http.ResponseWriter, _ *http.Request) error {
+    return nil
 }
 
 func createGame(w http.ResponseWriter, _ *http.Request) error {
