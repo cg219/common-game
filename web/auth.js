@@ -1,4 +1,5 @@
-async function getPKCreds() {
+async function getRegPKCreds() {
+    const client = new webauthn.WebAuthnClient()
     const username = htmx.values(htmx.find("#register")).get("username")
     const res = await fetch("/auth/register", {
         method: "POST",
@@ -6,28 +7,42 @@ async function getPKCreds() {
     })
 
     const data = await res.json()
+    console.log(data)
 
-    const publicKey = {
-        challenge: new TextEncoder().encode(atob(data.challenge)),
-        rp: {
-            name: "The Common Game",
-            id: "localhost"
-        },
-        user: {
-            id: new TextEncoder().encode(atob(data.userid)),
-            name: data.username,
-            displayName: data.displayName
-        },
-        pubKeyCredParams: [{alg: -7, type: "public-key"},{alg: -257, type: "public-key"}],
-        authenticatorSelection: {
-            authenticatiorAttachment: "platform",
-            requireResidentKey: true
-        }
-    }
+    const pub = await client.register(data)
 
-    console.log(publicKey)
+    console.log(pub)
 
-    const credential = await navigator.credentials.create({ publicKey })
+    const res2 = await fetch("/auth/verify", {
+        method: "POST",
+        body: JSON.stringify(pub)
+    })
 
-    console.log(credential)
+    console.log(res2)
 }
+
+async function getAuthPKCreds() {
+    const client = new webauthn.WebAuthnClient()
+    const username = htmx.values(htmx.find("#login")).get("username")
+    const res = await fetch("/auth", {
+        method: "POST",
+        body: JSON.stringify({ username })
+    })
+
+    const data = await res.json()
+    console.log(data)
+
+    const pub = await client.authenticate(data)
+
+    console.log(pub)
+
+    const res2 = await fetch("/auth/auth-verify", {
+        method: "POST",
+        body: JSON.stringify(pub)
+    })
+
+    console.log(res2)
+}
+
+window.getRegPKCreds = getRegPKCreds
+window.getAuthPKCreds = getAuthPKCreds

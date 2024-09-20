@@ -11,13 +11,23 @@
             <h1>Register w/ Passkey</h1>
             <form id="register" action="#">
                 <input type="text" name="username" placeholder="Enter a Username" />
-                <button hx-on:click="getPKCreds()">
+                <button hx-on:click="getRegPKCreds()">
                     Register
                 </button>
             </form>
         </section>
 
-        <div class="game"></div>
+        <section>
+            <h1>Login w/ Passkey</h1>
+            <form id="login" action="#">
+                <input type="text" name="username" placeholder="Enter a Username" />
+                <button hx-on:click="getAuthPKCreds()">
+                    Login
+                </button>
+            </form>
+        </section>
+
+        <script src="/sf/webauthn.js"></script>
         <script src="/sf/auth.js"></script>
     </body>
 </html>
