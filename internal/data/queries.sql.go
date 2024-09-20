@@ -118,6 +118,40 @@ func (q *Queries) GetSubjectsForGame(ctx context.Context) ([]GetSubjectsForGameR
 	return items, nil
 }
 
+const getUserById = `-- name: GetUserById :one
+SELECT uid, key_id, GROUP_CONCAT(keys, '|:|') AS key_string
+FROM users
+WHERE uid = ?
+GROUP BY uid, key_id
+`
+
+type GetUserByIdRow struct {
+	Uid       sql.NullString
+	KeyID     sql.NullString
+	KeyString string
+}
+
+func (q *Queries) GetUserById(ctx context.Context, uid sql.NullString) (GetUserByIdRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserById, uid)
+	var i GetUserByIdRow
+	err := row.Scan(&i.Uid, &i.KeyID, &i.KeyString)
+	return i, err
+}
+
+const getUserByKey = `-- name: GetUserByKey :one
+SELECT uid, key_id, keys
+FROM users
+WHERE key_id = ?
+LIMIT 1
+`
+
+func (q *Queries) GetUserByKey(ctx context.Context, keyID sql.NullString) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByKey, keyID)
+	var i User
+	err := row.Scan(&i.Uid, &i.KeyID, &i.Keys)
+	return i, err
+}
+
 const getWords = `-- name: GetWords :many
 SELECT word
 FROM words
@@ -144,6 +178,31 @@ func (q *Queries) GetWords(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const removeKey = `-- name: RemoveKey :exec
+DELETE FROM users
+WHERE uid = ? AND key_id = ?
+`
+
+type RemoveKeyParams struct {
+	Uid   sql.NullString
+	KeyID sql.NullString
+}
+
+func (q *Queries) RemoveKey(ctx context.Context, arg RemoveKeyParams) error {
+	_, err := q.db.ExecContext(ctx, removeKey, arg.Uid, arg.KeyID)
+	return err
+}
+
+const removeUserById = `-- name: RemoveUserById :exec
+DELETE FROM users
+WHERE uid = ?
+`
+
+func (q *Queries) RemoveUserById(ctx context.Context, uid sql.NullString) error {
+	_, err := q.db.ExecContext(ctx, removeUserById, uid)
+	return err
 }
 
 const saveNewGame = `-- name: SaveNewGame :one
@@ -187,6 +246,22 @@ type SaveSubjectParams struct {
 
 func (q *Queries) SaveSubject(ctx context.Context, arg SaveSubjectParams) error {
 	_, err := q.db.ExecContext(ctx, saveSubject, arg.Subject, arg.Words)
+	return err
+}
+
+const saveUser = `-- name: SaveUser :exec
+INSERT INTO users(uid, key_id, keys)
+VALUES(?, ?, ?)
+`
+
+type SaveUserParams struct {
+	Uid   sql.NullString
+	KeyID sql.NullString
+	Keys  sql.NullString
+}
+
+func (q *Queries) SaveUser(ctx context.Context, arg SaveUserParams) error {
+	_, err := q.db.ExecContext(ctx, saveUser, arg.Uid, arg.KeyID, arg.Keys)
 	return err
 }
 
@@ -271,5 +346,22 @@ type UpdateGameTurnsParams struct {
 
 func (q *Queries) UpdateGameTurns(ctx context.Context, arg UpdateGameTurnsParams) error {
 	_, err := q.db.ExecContext(ctx, updateGameTurns, arg.Turns, arg.Wrong, arg.ID)
+	return err
+}
+
+const updateUserKey = `-- name: UpdateUserKey :exec
+UPDATE users
+SET keys = ?
+WHERE uid = ? AND key_id = ?
+`
+
+type UpdateUserKeyParams struct {
+	Keys  sql.NullString
+	Uid   sql.NullString
+	KeyID sql.NullString
+}
+
+func (q *Queries) UpdateUserKey(ctx context.Context, arg UpdateUserKeyParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserKey, arg.Keys, arg.Uid, arg.KeyID)
 	return err
 }

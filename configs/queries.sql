@@ -73,3 +73,32 @@ SET win = ?,
     end = ?,
     active = ?
 WHERE id = ?;
+
+-- name: GetUserByKey :one
+SELECT uid, key_id, keys
+FROM users
+WHERE key_id = ?
+LIMIT 1;
+
+-- name: GetUserById :one
+SELECT uid, key_id, GROUP_CONCAT(keys, '|:|') AS key_string
+FROM users
+WHERE uid = ?
+GROUP BY uid, key_id;
+
+-- name: SaveUser :exec
+INSERT INTO users(uid, key_id, keys)
+VALUES(?, ?, ?);
+
+-- name: RemoveUserById :exec
+DELETE FROM users
+WHERE uid = ?;
+
+-- name: RemoveKey :exec
+DELETE FROM users
+WHERE uid = ? AND key_id = ?;
+
+-- name: UpdateUserKey :exec
+UPDATE users
+SET keys = ?
+WHERE uid = ? AND key_id = ?;

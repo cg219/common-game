@@ -32,6 +32,17 @@ type Subject struct {
 	Correct sql.NullInt64
 }
 
+type User struct {
+	Uid   sql.NullString
+	KeyID sql.NullString
+	Keys  sql.NullString
+}
+
+type UsersPlayer struct {
+	UserID   int64
+	PlayerID int64
+}
+
 type Word struct {
 	ID   int64
 	Word string
