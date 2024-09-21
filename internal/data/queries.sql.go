@@ -10,30 +10,18 @@ import (
 	"database/sql"
 )
 
-const getPlayerById = `-- name: GetPlayerById :one
-SELECT id, name
-FROM players
-WHERE id = ?
+const getGameUidById = `-- name: GetGameUidById :one
+SELECT uid
+FROM users_games
+WHERE gid = ?
+LIMIT 1
 `
 
-func (q *Queries) GetPlayerById(ctx context.Context, id int64) (Player, error) {
-	row := q.db.QueryRowContext(ctx, getPlayerById, id)
-	var i Player
-	err := row.Scan(&i.ID, &i.Name)
-	return i, err
-}
-
-const getPlayerByName = `-- name: GetPlayerByName :one
-SELECT id, name
-FROM players
-WHERE name = ?
-`
-
-func (q *Queries) GetPlayerByName(ctx context.Context, name sql.NullString) (Player, error) {
-	row := q.db.QueryRowContext(ctx, getPlayerByName, name)
-	var i Player
-	err := row.Scan(&i.ID, &i.Name)
-	return i, err
+func (q *Queries) GetGameUidById(ctx context.Context, gid int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getGameUidById, gid)
+	var uid string
+	err := row.Scan(&uid)
+	return uid, err
 }
 
 const getSubjects = `-- name: GetSubjects :many
@@ -206,32 +194,21 @@ func (q *Queries) RemoveUserById(ctx context.Context, uid sql.NullString) error 
 }
 
 const saveNewGame = `-- name: SaveNewGame :one
-INSERT INTO games(active, start, player_id)
-VALUES (?, ?, ?)
+INSERT INTO games(active, start)
+VALUES (?, ?)
 RETURNING id
 `
 
 type SaveNewGameParams struct {
-	Active   sql.NullBool
-	Start    sql.NullInt64
-	PlayerID sql.NullInt64
+	Active sql.NullBool
+	Start  sql.NullInt64
 }
 
 func (q *Queries) SaveNewGame(ctx context.Context, arg SaveNewGameParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, saveNewGame, arg.Active, arg.Start, arg.PlayerID)
+	row := q.db.QueryRowContext(ctx, saveNewGame, arg.Active, arg.Start)
 	var id int64
 	err := row.Scan(&id)
 	return id, err
-}
-
-const savePlayer = `-- name: SavePlayer :exec
-INSERT INTO players (name)
-VALUES (?)
-`
-
-func (q *Queries) SavePlayer(ctx context.Context, name sql.NullString) error {
-	_, err := q.db.ExecContext(ctx, savePlayer, name)
-	return err
 }
 
 const saveSubject = `-- name: SaveSubject :exec
@@ -262,6 +239,21 @@ type SaveUserParams struct {
 
 func (q *Queries) SaveUser(ctx context.Context, arg SaveUserParams) error {
 	_, err := q.db.ExecContext(ctx, saveUser, arg.Uid, arg.KeyID, arg.Keys)
+	return err
+}
+
+const saveUserToGame = `-- name: SaveUserToGame :exec
+INSERT INTO users_games(uid, gid)
+VALUES(?, ?)
+`
+
+type SaveUserToGameParams struct {
+	Uid string
+	Gid int64
+}
+
+func (q *Queries) SaveUserToGame(ctx context.Context, arg SaveUserToGameParams) error {
+	_, err := q.db.ExecContext(ctx, saveUserToGame, arg.Uid, arg.Gid)
 	return err
 }
 

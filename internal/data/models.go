@@ -9,19 +9,13 @@ import (
 )
 
 type Game struct {
-	ID       int64
-	Active   sql.NullBool
-	Turns    sql.NullInt64
-	Wrong    sql.NullInt64
-	Win      sql.NullBool
-	Start    sql.NullInt64
-	End      sql.NullInt64
-	PlayerID sql.NullInt64
-}
-
-type Player struct {
-	ID   int64
-	Name sql.NullString
+	ID     int64
+	Active sql.NullBool
+	Turns  sql.NullInt64
+	Wrong  sql.NullInt64
+	Win    sql.NullBool
+	Start  sql.NullInt64
+	End    sql.NullInt64
 }
 
 type Subject struct {
@@ -38,9 +32,9 @@ type User struct {
 	Keys  sql.NullString
 }
 
-type UsersPlayer struct {
-	UserID   int64
-	PlayerID int64
+type UsersGame struct {
+	Uid string
+	Gid int64
 }
 
 type Word struct {

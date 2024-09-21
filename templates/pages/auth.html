@@ -9,9 +9,9 @@
         <h1>The Comme Game</h1>
         <section>
             <h1>Register w/ Passkey</h1>
-            <form id="register" action="#">
+            <form id="register" action="#" hx-boost="true">
                 <input type="text" name="username" placeholder="Enter a Username" />
-                <button hx-on:click="getRegPKCreds()">
+                <button hx-on:click="commongame.register()">
                     Register
                 </button>
             </form>
@@ -19,9 +19,9 @@
 
         <section>
             <h1>Login w/ Passkey</h1>
-            <form id="login" action="#">
+            <form id="login" action="#" hx-boost="true">
                 <input type="text" name="username" placeholder="Enter a Username" />
-                <button hx-on:click="getAuthPKCreds()">
+                <button hx-on:click="commongame.login()">
                     Login
                 </button>
             </form>

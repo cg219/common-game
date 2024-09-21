@@ -1,61 +1,60 @@
 package auth
 
 import (
-	"crypto/rand"
-	"encoding/base64"
+	"cmp"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
-const ChallengeSize = 32
-const UserIdSize = 32
-
-type Challenge = [ChallengeSize]byte
-type UserId = [UserIdSize]byte
-type RegistrationResponse struct {
-    Challenge string `json:"challenge"`
-    UserId string `json:"userid"`
-    UserName string `json:"username"`
-    UserDisplay string `json:"displayName"`
+type Token struct {
+    subject string
+    expiresAt time.Time
+    Name string
+    value string
 }
 
-func CreateChallenge() (Challenge, error){
-    var c Challenge
-
-    if _, err := rand.Read(c[:]); err != nil {
-        return c, err
+func NewToken(n, s string, e time.Time) Token {
+    return Token{
+        Name: n,
+        subject: s,
+        expiresAt: e,
     }
-
-    return c, nil
 }
 
-func CreateUserId() (UserId, error) {
-    var u UserId
-
-    if _, err := rand.Read(u[:]); err != nil {
-        return u, err
+func NewCookie(n, v string, ma int) http.Cookie {
+    return http.Cookie{
+        Name: fmt.Sprintf("the-connect-game-%s", n),
+        Value: v,
+        Path: "/",
+        MaxAge: ma,
+        HttpOnly: true,
+        Secure: true,
+        SameSite: http.SameSiteLaxMode,
     }
-
-    return u, nil
 }
 
-func CreateRegistration(name string, display string) RegistrationResponse {
-    challenge, err := CreateChallenge()
+func (t *Token) Value() string {
+    return t.value
+}
+
+func (t *Token) Create() error {
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.RegisteredClaims{
+        Issuer: "common-game",
+        IssuedAt: jwt.NewNumericDate(time.Now().UTC()),
+        ExpiresAt: jwt.NewNumericDate(t.expiresAt),
+        Subject: fmt.Sprintf("%s", t.subject),
+    })
+
+    stoken, err := token.SignedString([]byte("notsecure"))
+
     if err != nil {
-        panic(err)
+        return fmt.Errorf("Error creating %s token. val: %t, err %s", cmp.Or(t.Name, "new"), t.subject, err)
     }
 
-    userId, err := CreateUserId()
-    if err != nil {
-        panic(err)
-    }
+    t.value = stoken
 
-    challengeStr := base64.RawStdEncoding.EncodeToString(challenge[:])
-    userStr := base64.RawStdEncoding.EncodeToString(userId[:])
-    reg := RegistrationResponse{
-        Challenge: challengeStr,
-        UserId: userStr,
-        UserName: name,
-        UserDisplay: display,
-    }
-
-    return reg
+    return  nil
 }

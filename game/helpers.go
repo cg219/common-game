@@ -1,7 +1,6 @@
 package game
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,17 +9,12 @@ import (
 	"github.com/cg219/common-game/internal/data"
 )
 
-type GameConfig struct {
-    Q *data.Queries
-    Ctx context.Context
-}
-
 type wordsResponse struct {
     Words []string `json:"words"`
 }
 
-func Create(ng GameConfig) (*Game, error) {
-    return newGame(ng), nil
+func Create(rows []data.GetSubjectsForGameRow) *Game {
+    return newGame(rows)
 }
 
 func StartWithGame(g *Game) <-chan Status {
@@ -55,19 +49,13 @@ func start(g *Game) <-chan Status {
     return output
 }
 
-func newGame(ng GameConfig) *Game {
+func newGame(rows []data.GetSubjectsForGameRow) *Game {
     var subjects [4]Subject
 
-    if ng.Q != nil {
-        res, err := ng.Q.GetSubjectsForGame(ng.Ctx)
+    if rows != nil {
+        fmt.Println(rows)
 
-        if err != nil {
-            log.Fatalf("Oops: %s", err)
-        }
-
-        fmt.Println(res)
-
-        for i, v := range res {
+        for i, v := range rows {
             var words [4]string
             var tmp []interface{}
 

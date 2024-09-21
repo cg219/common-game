@@ -1,4 +1,4 @@
-async function getRegPKCreds() {
+async function register() {
     const client = new webauthn.WebAuthnClient()
     const username = htmx.values(htmx.find("#register")).get("username")
     const res = await fetch("/auth/register", {
@@ -7,21 +7,18 @@ async function getRegPKCreds() {
     })
 
     const data = await res.json()
-    console.log(data)
-
     const pub = await client.register(data)
-
-    console.log(pub)
-
-    const res2 = await fetch("/auth/verify", {
+    await fetch("/auth/verify", {
         method: "POST",
-        body: JSON.stringify(pub)
+        body: JSON.stringify({
+            username,
+            response: pub
+        })
     })
-
-    console.log(res2)
+    window.location.href = "/"
 }
 
-async function getAuthPKCreds() {
+async function login() {
     const client = new webauthn.WebAuthnClient()
     const username = htmx.values(htmx.find("#login")).get("username")
     const res = await fetch("/auth", {
@@ -30,19 +27,19 @@ async function getAuthPKCreds() {
     })
 
     const data = await res.json()
-    console.log(data)
-
     const pub = await client.authenticate(data)
 
-    console.log(pub)
-
-    const res2 = await fetch("/auth/auth-verify", {
+    await fetch("/auth/auth-verify", {
         method: "POST",
-        body: JSON.stringify(pub)
+        body: JSON.stringify({
+            username,
+            response: pub
+        })
     })
-
-    console.log(res2)
+    
+    window.location.href = "/"
 }
 
-window.getRegPKCreds = getRegPKCreds
-window.getAuthPKCreds = getAuthPKCreds
+window.commongame = {
+    register, login
+}

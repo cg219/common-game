@@ -33,24 +33,20 @@ WHERE NOT EXISTS (
     WHERE l1.id = randomrows.id
 );
 
--- name: GetPlayerByName :one
-SELECT id, name
-FROM players
-WHERE name = ?;
-
--- name: SavePlayer :exec
-INSERT INTO players (name)
-VALUES (?);
-
--- name: GetPlayerById :one
-SELECT id, name
-FROM players
-WHERE id = ?;
-
 -- name: SaveNewGame :one
-INSERT INTO games(active, start, player_id)
-VALUES (?, ?, ?)
+INSERT INTO games(active, start)
+VALUES (?, ?)
 RETURNING id;
+
+-- name: SaveUserToGame :exec
+INSERT INTO users_games(uid, gid)
+VALUES(?, ?);
+
+-- name: GetGameUidById :one
+SELECT uid
+FROM users_games
+WHERE gid = ?
+LIMIT 1;
 
 -- name: UpdateGame :exec
 UPDATE games
