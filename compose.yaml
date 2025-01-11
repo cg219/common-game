@@ -1,0 +1,20 @@
+services:
+  app:
+    build:
+      context: .
+      target: dev
+    working_dir: /app
+    environment:
+      - PORT=8080
+    env_file:
+      - .env
+    command: /usr/local/bin/thecommongame
+    ports:
+      - 8080:8080
+    volumes:
+      - $PWD:/app
+      - thecommongame-data:/app/data
+
+volumes:
+  thecommongame-data:
+

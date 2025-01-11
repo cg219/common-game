@@ -1,0 +1,23 @@
+version: "3.7"
+
+services:
+  thecommongame:
+    image: ghcr.io/cg219/thecommongame:main
+    environment:
+      - APP_DATA=data/database.db
+      - APP=/run/secrets/npsecrets
+      - PORT=8080
+    ports:
+      - 8080:8080
+    volumes:
+      - thecommongame-data:/app/data
+    secrets:
+      - npsecrets
+
+secrets:
+  npsecrets:
+    file: secrets.yml
+
+volumes:
+  thecommongame-data:
+
