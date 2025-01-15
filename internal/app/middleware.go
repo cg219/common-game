@@ -128,7 +128,7 @@ func (s *Server) UserOnly(w http.ResponseWriter, r *http.Request) error {
     cookie, err := r.Cookie("thecommongame")
     if err != nil {
         if apikey := r.Header.Get("np-apikey"); apikey != "" {
-            username, err := s.authCfg.database.GetUserFromApiKey(r.Context(), apikey)
+            username, err := s.appcfg.database.GetUserFromApiKey(r.Context(), apikey)
             if err != nil {
                 s.log.Error("Invalid API Key", "key", apikey, "method", "UserOnly", "request", r, "error", err.Error())
                 return fmt.Errorf(AUTH_ERROR)

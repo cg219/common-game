@@ -77,6 +77,9 @@ func Run(config Config) error {
     defer stop()
 
     // App Logic
+    go func() {
+        StartServer(cfg)
+    }()
 
     for {
         select {

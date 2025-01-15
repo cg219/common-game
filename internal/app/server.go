@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
@@ -9,6 +10,7 @@ import (
 	"io/fs"
 	"log"
 	"log/slog"
+	"math/big"
 	"net/http"
 	"os"
 	"os/signal"
@@ -285,7 +287,7 @@ func (s *Server) login(ctx context.Context, username string, password string) bo
         return false 
     }
 
-    correct, _ := s.hasher.Compare(password, existingUser.Password.(string))
+    correct, _ := s.hasher.Compare(password, existingUser.Password)
     if !correct {
         s.log.Info("Password Mismatch", "password", password)
         return false
