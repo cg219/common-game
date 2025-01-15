@@ -75,13 +75,13 @@ fourth AS (
     ORDER BY random()
     LIMIT 1
 )
-SELECT * FROM first
+SELECT id FROM first
 UNION ALL
-SELECT * FROM second
+SELECT id FROM second
 UNION ALL
-SELECT * FROM third
+SELECT id FROM third
 UNION ALL
-SELECT * FROM fourth;
+SELECT id FROM fourth;
 
 -- name: GetBoardForGame :one
 WITH gids AS (
@@ -97,6 +97,16 @@ WHERE id NOT IN (
     WHERE id IN gids
 )
 LIMIT 1;
+
+-- name: SaveNewBoard :exec
+INSERT INTO boards(subject1, subject2, subject3, subject4)
+VALUES(?, ?, ?, ?);
+
+-- name: UpdateBoard :exec
+UPDATE boards
+SET played = ?,
+    wins = ?
+WHERE id = ?;
 
 -- name: SaveNewGame :one
 INSERT INTO games(active, start)

@@ -40,7 +40,8 @@ CREATE TABLE boards (
     subject3 INTEGER REFERENCES subjects(id),
     subject4 INTEGER REFERENCES subjects(id),
     played INTEGER DEFAULT 0,
-    wins INTEGER DEFAULT 0
+    wins INTEGER DEFAULT 0,
+    UNIQUE(subject1, subject2, subject3, subject4)
 );
 -- +goose StatementEnd
 

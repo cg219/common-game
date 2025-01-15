@@ -172,44 +172,28 @@ fourth AS (
     ORDER BY random()
     LIMIT 1
 )
-SELECT id, name, word1, word2, word3, word4 FROM first
+SELECT id FROM first
 UNION ALL
-SELECT id, name, word1, word2, word3, word4 FROM second
+SELECT id FROM second
 UNION ALL
-SELECT id, name, word1, word2, word3, word4 FROM third
+SELECT id FROM third
 UNION ALL
-SELECT id, name, word1, word2, word3, word4 FROM fourth
+SELECT id FROM fourth
 `
 
-type GetSubjectsForBoardRow struct {
-	ID    int64
-	Name  string
-	Word1 int64
-	Word2 int64
-	Word3 int64
-	Word4 int64
-}
-
-func (q *Queries) GetSubjectsForBoard(ctx context.Context) ([]GetSubjectsForBoardRow, error) {
+func (q *Queries) GetSubjectsForBoard(ctx context.Context) ([]int64, error) {
 	rows, err := q.db.QueryContext(ctx, getSubjectsForBoard)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetSubjectsForBoardRow
+	var items []int64
 	for rows.Next() {
-		var i GetSubjectsForBoardRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Word1,
-			&i.Word2,
-			&i.Word3,
-			&i.Word4,
-		); err != nil {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, id)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -233,6 +217,28 @@ type SaveBoardToGameParams struct {
 
 func (q *Queries) SaveBoardToGame(ctx context.Context, arg SaveBoardToGameParams) error {
 	_, err := q.db.ExecContext(ctx, saveBoardToGame, arg.Bid, arg.ID)
+	return err
+}
+
+const saveNewBoard = `-- name: SaveNewBoard :exec
+INSERT INTO boards(subject1, subject2, subject3, subject4)
+VALUES(?, ?, ?, ?)
+`
+
+type SaveNewBoardParams struct {
+	Subject1 sql.NullInt64
+	Subject2 sql.NullInt64
+	Subject3 sql.NullInt64
+	Subject4 sql.NullInt64
+}
+
+func (q *Queries) SaveNewBoard(ctx context.Context, arg SaveNewBoardParams) error {
+	_, err := q.db.ExecContext(ctx, saveNewBoard,
+		arg.Subject1,
+		arg.Subject2,
+		arg.Subject3,
+		arg.Subject4,
+	)
 	return err
 }
 
@@ -290,6 +296,24 @@ type SaveUserToGameParams struct {
 
 func (q *Queries) SaveUserToGame(ctx context.Context, arg SaveUserToGameParams) error {
 	_, err := q.db.ExecContext(ctx, saveUserToGame, arg.Uid, arg.Gid)
+	return err
+}
+
+const updateBoard = `-- name: UpdateBoard :exec
+UPDATE boards
+SET played = ?,
+    wins = ?
+WHERE id = ?
+`
+
+type UpdateBoardParams struct {
+	Played sql.NullInt64
+	Wins   sql.NullInt64
+	ID     int64
+}
+
+func (q *Queries) UpdateBoard(ctx context.Context, arg UpdateBoardParams) error {
+	_, err := q.db.ExecContext(ctx, updateBoard, arg.Played, arg.Wins, arg.ID)
 	return err
 }
 
