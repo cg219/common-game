@@ -5,5 +5,6 @@ import (
 )
 
 func main() {
-    jeeves.GenerateBoards(100)
+    // jeeves.GenerateBoards(100)
+    jeeves.GetNewBoard(1)
 }

@@ -61,3 +61,30 @@ func GenerateBoards(amount int) {
         }
     }
 }
+
+func GetNewBoard(uid int) {
+    q, db, ctx, stop := setup()
+    defer db.Close()
+    defer stop()
+
+    fmt.Printf("get new board for uid: %d\n", uid)
+
+    board, err := q.GetBoardForGame(ctx, int64(uid));
+    if err != nil {
+        log.Fatalf("err getting board: %s\n", err.Error())
+    }
+
+    res, err := q.PopulateSubjects(ctx, database.PopulateSubjectsParams{
+        ID: board.Subject1.Int64,
+        ID_2: board.Subject2.Int64,
+        ID_3: board.Subject3.Int64,
+        ID_4: board.Subject4.Int64,
+    })
+
+    if err != nil {
+        log.Fatalf("err populating subjects: %s\n", err.Error())
+    }
+
+    fmt.Println(board)
+    fmt.Println(res)
+}

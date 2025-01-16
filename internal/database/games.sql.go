@@ -204,6 +204,65 @@ func (q *Queries) GetSubjectsForBoard(ctx context.Context) ([]int64, error) {
 	return items, nil
 }
 
+const populateSubjects = `-- name: PopulateSubjects :many
+SELECT s.name, w.word, w2.word, w3.word, w4.word
+FROM subjects s
+LEFT JOIN words w ON s.word1 = w.id
+LEFT JOIN words w2 ON s.word2 = w2.id
+LEFT JOIN words w3 ON s.word3 = w3.id
+LEFT JOIN words w4 ON s.word4 = w4.id
+WHERE s.id IN (?, ?, ?, ?)
+`
+
+type PopulateSubjectsParams struct {
+	ID   int64
+	ID_2 int64
+	ID_3 int64
+	ID_4 int64
+}
+
+type PopulateSubjectsRow struct {
+	Name   string
+	Word   sql.NullString
+	Word_2 sql.NullString
+	Word_3 sql.NullString
+	Word_4 sql.NullString
+}
+
+func (q *Queries) PopulateSubjects(ctx context.Context, arg PopulateSubjectsParams) ([]PopulateSubjectsRow, error) {
+	rows, err := q.db.QueryContext(ctx, populateSubjects,
+		arg.ID,
+		arg.ID_2,
+		arg.ID_3,
+		arg.ID_4,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PopulateSubjectsRow
+	for rows.Next() {
+		var i PopulateSubjectsRow
+		if err := rows.Scan(
+			&i.Name,
+			&i.Word,
+			&i.Word_2,
+			&i.Word_3,
+			&i.Word_4,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const saveBoardToGame = `-- name: SaveBoardToGame :exec
 UPDATE games
 SET bid = ?

@@ -98,6 +98,15 @@ WHERE id NOT IN (
 )
 LIMIT 1;
 
+-- name: PopulateSubjects :many
+SELECT s.name, w.word, w2.word, w3.word, w4.word
+FROM subjects s
+LEFT JOIN words w ON s.word1 = w.id
+LEFT JOIN words w2 ON s.word2 = w2.id
+LEFT JOIN words w3 ON s.word3 = w3.id
+LEFT JOIN words w4 ON s.word4 = w4.id
+WHERE s.id IN (?, ?, ?, ?);
+
 -- name: SaveNewBoard :exec
 INSERT INTO boards(subject1, subject2, subject3, subject4)
 VALUES(?, ?, ?, ?);
