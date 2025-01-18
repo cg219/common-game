@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/cg219/common-game/internal/database"
+	"github.com/cg219/common-game/internal/game"
 	"github.com/cg219/common-game/pkg/argon2id"
 	"github.com/cg219/common-game/pkg/webtoken"
 	"github.com/golang-jwt/jwt/v5"
@@ -29,6 +30,26 @@ type Server struct {
     appcfg *AppCfg
     log *slog.Logger
     hasher *argon2id.Argon2id
+    games map[int]*LiveGameData
+}
+
+type LiveGameData struct {
+    game *game.Game
+    mch chan<- game.Move
+    sch <-chan game.StatusGroup
+}
+
+type GameResponse struct {
+    Words []game.WordData`json:"words"`
+    GameId int `json:"id"`
+    TurnsLeft int `json:"moveLeft"`
+    Status int `json:"status"`
+    HasMove bool
+    WordExists func([]string, string) bool
+    Move struct {
+        Correct bool `json:"correct"`
+        Words  []string `json:"words,omitempty"`
+    } `json:"move,omitempty"`
 }
 
 type SuccessResp struct {
@@ -68,6 +89,7 @@ func NewServer(cfg *AppCfg) *Server {
         appcfg: cfg,
         log: slog.New(slog.NewTextHandler(os.Stderr, nil)),
         hasher: argon2id.NewArgon2id(16 * 1024, 2, 1, 16, 32),
+        games: make(map[int]*LiveGameData),
     }
 }
 
@@ -87,6 +109,8 @@ func addRoutes(srv *Server) {
     srv.mux.Handle("POST /api/generate-apikey/{name}", srv.handle(srv.UserOnly, srv.GenerateAPIKey))
     srv.mux.Handle("POST /api/forgot-password", srv.handle(srv.ForgotPassword))
     srv.mux.Handle("POST /api/reset-password", srv.handle(srv.ResetPassword))
+    srv.mux.Handle("POST /api/game", srv.handle(srv.UserOnly, srv.CreateGame))
+    srv.mux.Handle("PUT /api/game", srv.handle(srv.UserOnly, srv.UpdateGame))
     srv.mux.Handle("POST /auth/register", srv.handle(srv.Register))
     srv.mux.Handle("POST /auth/login", srv.handle(srv.Login))
     srv.mux.Handle("POST /auth/logout", srv.handle(srv.UserOnly, srv.Logout))
@@ -98,6 +122,166 @@ func (h CandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     if err := h(w, r); err != nil {
         fmt.Println("OOPS")
     }
+}
+
+func (s *Server) CreateGame(w http.ResponseWriter, r *http.Request) error {
+    username := r.Context().Value("username").(string)
+    user, err := s.appcfg.database.GetUser(r.Context(), username)
+    if err != nil {
+        s.log.Error("Error retreiving user", "err",err)
+        return fmt.Errorf(INTERNAL_ERROR)
+    }
+
+    board, err := s.appcfg.database.GetBoardForGame(r.Context(), user.ID)
+    if err != nil {
+        s.log.Error("Error retreiving subjects", "err",err)
+        return fmt.Errorf(INTERNAL_ERROR)
+    }
+
+    populatedBoard, err := s.appcfg.database.PopulateSubjects(r.Context(), database.PopulateSubjectsParams{
+        ID: board.Subject1.Int64,
+        ID_2: board.Subject2.Int64,
+        ID_3: board.Subject3.Int64,
+        ID_4: board.Subject4.Int64,
+    })
+
+    game := game.Create(populatedBoard)
+    id, err := s.appcfg.database.SaveNewGame(r.Context(), database.SaveNewGameParams{
+        Active: sql.NullBool{ Bool: true, Valid: true },
+        Start: sql.NullInt64{ Int64: time.Now().UTC().UnixMilli(), Valid: true },
+    })
+
+    if err != nil {
+        s.log.Error("Error creating game", "err", err)
+        return fmt.Errorf(INTERNAL_ERROR)
+    }
+
+    err = s.appcfg.database.SaveUserToGame(r.Context(), database.SaveUserToGameParams{ Uid: user.ID, Gid: id})
+    if err != nil {
+        s.log.Error("Error saving user to game", "err", err)
+        return fmt.Errorf(INTERNAL_ERROR)
+    }
+
+    statusCh, moveCh := game.Run()
+    s.games[int(id)] = &LiveGameData{
+        game: game,
+        mch: moveCh,
+        sch: statusCh,
+    }
+
+    // tmpl := template.Must(template.ParseFiles("templates/fragments/game-board.html"))
+
+    gr := &GameResponse{
+        GameId: int(id),
+        Words: game.WordsWithData(),
+        TurnsLeft: game.MaxTurns - game.Metadata.WrongTurns,
+        Status: int(game.CheckStatus()),
+    }
+
+    encode(w, http.StatusOK, gr)
+    return nil
+}
+
+func (s *Server) UpdateGame(w http.ResponseWriter, r *http.Request) error {
+    type Body struct {
+        Words [4]string `json:"words"`
+        Gid int `json:"gid"`
+    }
+
+    username := r.Context().Value("username").(string)
+    user, err := s.appcfg.database.GetUser(r.Context(), username)
+    if err != nil {
+        s.log.Error("Error retreiving user", "err",err)
+        return fmt.Errorf(INTERNAL_ERROR)
+    }
+
+    body, err := decode[Body](r)
+    if err != nil {
+        s.log.Error("Error decoding body", "err",err)
+        return fmt.Errorf(INTERNAL_ERROR)
+    }
+
+    r.Body.Close()
+
+    guid, err := s.appcfg.database.GetGameUidByGameId(r.Context(), int64(body.Gid))
+    if err != nil {
+        log.Printf("Error Getting Game: %s", err)
+        return fmt.Errorf("Internal Server Error")
+    }
+
+    if guid != user.ID {
+        s.log.Error("Game UID doesn't match User ID", "guid", guid, "uid", user.ID, "err", err)
+        return fmt.Errorf(AUTH_ERROR)
+    }
+
+    d, ok := s.games[body.Gid]
+
+    if !ok {
+        s.log.Error("Getting game from server games", "gid", body.Gid, "err", err)
+        return fmt.Errorf(INTERNAL_ERROR)
+    }
+
+    // err = r.ParseForm()
+    // if err != nil {
+    //     log.Printf("Error parsing form: %s", err)
+    //     return fmt.Errorf("Internal Server Error")
+    // }
+    //
+    // var words [4]string
+    //
+    // for k, v := range r.Form {
+    //     if strings.EqualFold(k,"words") {
+    //         copy(words[:], v[:4])
+    //     }
+    // }
+
+    d.mch <- game.Move{ Words: body.Words }
+    status := <- d.sch
+
+    switch status.Status.Status() {
+    case game.Playing:
+        s.appcfg.database.UpdateGameTurns(r.Context(), database.UpdateGameTurnsParams{
+            ID: int64(body.Gid),
+            Wrong: sql.NullInt64{ Int64: int64(d.game.Metadata.WrongTurns), Valid: true },
+            Turns: sql.NullInt64{ Int64: int64(d.game.Metadata.TotalTurns), Valid: true },
+        }) 
+    case game.Win:
+        s.appcfg.database.UpdateGameStatus(r.Context(), database.UpdateGameStatusParams{
+            ID: int64(body.Gid),
+            End: sql.NullInt64{ Int64: int64(time.Now().UTC().UnixMilli()), Valid: true },
+            Active: sql.NullBool{ Bool: false, Valid: true },
+            Win: sql.NullBool{ Bool: true, Valid: true },
+        })
+    case game.Lose:
+        s.appcfg.database.UpdateGameStatus(r.Context(), database.UpdateGameStatusParams{
+            ID: int64(body.Gid),
+            End: sql.NullInt64{ Int64: int64(time.Now().UTC().UnixMilli()), Valid: true },
+            Active: sql.NullBool{ Bool: false, Valid: true },
+            Win: sql.NullBool{ Bool: false, Valid: true },
+        })
+    default:
+        s.appcfg.database.UpdateGame(r.Context(), database.UpdateGameParams{
+            ID: int64(body.Gid),
+            Turns: sql.NullInt64{ Int64: int64(d.game.Metadata.TotalTurns), Valid: true },
+            Wrong: sql.NullInt64{ Int64: int64(d.game.Metadata.WrongTurns), Valid: true },
+        })
+    }
+
+    // tmpl := template.Must(template.ParseFiles("templates/fragments/game-board.html"))
+    gr := &GameResponse{
+        GameId: body.Gid,
+        Words: d.game.WordsWithData(),
+        TurnsLeft: d.game.MaxTurns - d.game.Metadata.WrongTurns,
+        Status: status.Status.Status().Enum(),
+        HasMove: true,
+        Move: struct{Correct bool "json:\"correct\""; Words []string "json:\"words,omitempty\""}{
+            Correct: status.Status.Metadata.Correct,
+            Words: status.Status.Metadata.Move.Words[:],
+        },
+    }
+
+    encode(w, http.StatusOK, gr)
+    return nil
 }
 
 func (s *Server) GenerateAPIKey(w http.ResponseWriter, r *http.Request) error {
