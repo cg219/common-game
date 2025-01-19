@@ -7,6 +7,7 @@ export default defineConfig({
     build: {
         rollupOptions: {
             input: {
+                game: resolve(import.meta.dirname!,  "entrypoints/game.html"),
                 auth: resolve(import.meta.dirname!,  "entrypoints/auth.html"),
                 reset: resolve(import.meta.dirname!,  "entrypoints/reset.html")
             },

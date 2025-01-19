@@ -4,11 +4,13 @@
 import { mount } from 'svelte'
 import Reset from "./pages/Reset.svelte"
 import Auth from "./pages/Auth.svelte"
+import Game from "./pages/Game.svelte";
 
 const pages = new Map()
 
 pages.set("reset", Reset)
 pages.set("auth", Auth)
+pages.set("game", Game)
 
 const app = (page: string) => {
     let p = pages.get("*");

@@ -52,7 +52,8 @@ func newGame(rows []database.PopulateSubjectsRow) *Game {
     var subjects [4]Subject
 
     if rows != nil {
-        fmt.Println(rows)
+        // fmt.Println(rows)
+        fmt.Println("")
 
         for i, v := range rows {
             var words [4]string

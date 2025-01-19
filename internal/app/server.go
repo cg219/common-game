@@ -44,8 +44,7 @@ type GameResponse struct {
     GameId int `json:"id"`
     TurnsLeft int `json:"moveLeft"`
     Status int `json:"status"`
-    HasMove bool
-    WordExists func([]string, string) bool
+    HasMove bool  `json:"hasMove"`
     Move struct {
         Correct bool `json:"correct"`
         Words  []string `json:"words,omitempty"`
@@ -105,6 +104,7 @@ func addRoutes(srv *Server) {
     })
 
     srv.mux.Handle("GET /", srv.handle(srv.getLoginPage))
+    srv.mux.Handle("GET /game", srv.handle(srv.getGamePage))
     srv.mux.Handle("GET /assets/", http.StripPrefix("/assets", http.FileServer(http.FS(static))))
     srv.mux.Handle("POST /api/generate-apikey/{name}", srv.handle(srv.UserOnly, srv.GenerateAPIKey))
     srv.mux.Handle("POST /api/forgot-password", srv.handle(srv.ForgotPassword))
@@ -168,8 +168,6 @@ func (s *Server) CreateGame(w http.ResponseWriter, r *http.Request) error {
         mch: moveCh,
         sch: statusCh,
     }
-
-    // tmpl := template.Must(template.ParseFiles("templates/fragments/game-board.html"))
 
     gr := &GameResponse{
         GameId: int(id),
@@ -398,6 +396,11 @@ func (s *Server) getLoginPage(w http.ResponseWriter, r *http.Request) error {
     return nil
 }
 
+func (s *Server) getGamePage(w http.ResponseWriter, r *http.Request) error {
+    s.getFile(w, "static-app/entrypoints/game.html")
+    return nil
+}
+
 func (s *Server) setTokens(w http.ResponseWriter, r *http.Request, username string) {
     accessToken := webtoken.NewToken("accessToken", username, "notsecure", time.Now().Add(time.Hour * 1))
     refreshToken := webtoken.NewToken("refreshToken", webtoken.GenerateRefreshString(), "notsecure", time.Now().Add(time.Hour * 24 * 30))
@@ -592,6 +595,7 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) error {
     type RegisterBody struct {
         Username string `json:"username"`
         Password string `json:"password"`
+        Email string `json:"email"`
     }
 
     body, err := decode[RegisterBody](r)
@@ -617,6 +621,7 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) error {
 
     err = s.appcfg.database.SaveUser(r.Context(), database.SaveUserParams{
         Username: body.Username,
+        Email: body.Email,
         Password: hashPass,
     })
 
