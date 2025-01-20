@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -38,7 +37,6 @@ func start(g *Game) <-chan Status {
 
     go func() {
         for s := range status {
-            // fmt.Println(s.LoopStatus, s.Status)
             output <- s.Status
         }
 
@@ -52,16 +50,14 @@ func newGame(rows []database.PopulateSubjectsRow) *Game {
     var subjects [4]Subject
 
     if rows != nil {
-        // fmt.Println(rows)
-        fmt.Println("")
 
         for i, v := range rows {
             var words [4]string
 
             words[0] = v.Word.String
-            words[1] = v.Word.String
-            words[2] = v.Word.String
-            words[3] = v.Word.String
+            words[1] = v.Word_2.String
+            words[2] = v.Word_3.String
+            words[3] = v.Word_4.String
 
             subjects[i] = Subject{ Name: v.Name, Words: words }
         }

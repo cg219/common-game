@@ -146,19 +146,47 @@ func (s *Server) CreateGame(w http.ResponseWriter, r *http.Request) error {
     })
 
     game := game.Create(populatedBoard)
-    id, err := s.appcfg.database.SaveNewGame(r.Context(), database.SaveNewGameParams{
+
+    tx, err := s.appcfg.connection.BeginTx(r.Context(), nil)
+    if err != nil {
+        s.log.Error("Error creating tx", "err", err)
+        return fmt.Errorf(INTERNAL_ERROR)
+    }
+
+    qtx := s.appcfg.database.WithTx(tx)
+
+    id, err := qtx.SaveNewGame(r.Context(), database.SaveNewGameParams{
         Active: sql.NullBool{ Bool: true, Valid: true },
         Start: sql.NullInt64{ Int64: time.Now().UTC().UnixMilli(), Valid: true },
     })
 
     if err != nil {
         s.log.Error("Error creating game", "err", err)
+        tx.Rollback()
         return fmt.Errorf(INTERNAL_ERROR)
     }
 
-    err = s.appcfg.database.SaveUserToGame(r.Context(), database.SaveUserToGameParams{ Uid: user.ID, Gid: id})
+    err = qtx.SaveUserToGame(r.Context(), database.SaveUserToGameParams{ Uid: user.ID, Gid: id })
     if err != nil {
         s.log.Error("Error saving user to game", "err", err)
+        tx.Rollback()
+        return fmt.Errorf(INTERNAL_ERROR)
+    }
+
+    err = qtx.SaveBoardToGame(r.Context(), database.SaveBoardToGameParams{
+        Bid: sql.NullInt64{ Int64: board.ID, Valid: true },
+        ID: id,
+    })
+    if err != nil {
+        s.log.Error("Error saving board to game", "err", err)
+        tx.Rollback()
+        return fmt.Errorf(INTERNAL_ERROR)
+    }
+
+    err = tx.Commit()
+    if err != nil {
+        s.log.Error("Error committing tx", "tx", tx, "err", err)
+        tx.Rollback()
         return fmt.Errorf(INTERNAL_ERROR)
     }
 

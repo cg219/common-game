@@ -27,6 +27,7 @@ type Config struct {
 type AppCfg struct {
     config Config
     database *database.Queries
+    connection *sql.DB
 }
 
 func NewConfig(frontend embed.FS, migrations embed.FS) *Config {
@@ -73,6 +74,7 @@ func Run(config Config) error {
     }
 
     cfg.database = database.New(db)
+    cfg.connection = db
     ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
     defer stop()
 
