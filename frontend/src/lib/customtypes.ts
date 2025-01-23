@@ -5,16 +5,16 @@ export type Link = {
 }
 
 export type GameResponse = {
-    words: string[]
+    words: {
+        correct: boolean
+        word: string
+    }[]
     id: number
     moveLeft: number
     status: number
     hasMove: boolean
     move: {
         correct: boolean
-        words: {
-            correct: boolean
-            word: string
-        }[]
+        words: string[]
     }
 }

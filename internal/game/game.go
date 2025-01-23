@@ -17,7 +17,7 @@ type Move struct {
 
 type WordData struct {
     Word string `json:"word"`
-    Value string `json:"value"`
+    Value string `json:"value,omitempty"`
     Correct bool `json:"correct"`
     Subject int `json:"subject"`
 }
