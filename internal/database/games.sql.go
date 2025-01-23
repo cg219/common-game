@@ -61,6 +61,19 @@ func (q *Queries) GetGameUidByGameId(ctx context.Context, gid int64) (int64, err
 	return uid, err
 }
 
+const getSubjectName = `-- name: GetSubjectName :one
+SELECT name
+FROM subjects
+WHERE id = ?
+`
+
+func (q *Queries) GetSubjectName(ctx context.Context, id int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getSubjectName, id)
+	var name string
+	err := row.Scan(&name)
+	return name, err
+}
+
 const getSubjects = `-- name: GetSubjects :many
 SELECT name, word1, word2, word3, word4 FROM subjects
 `

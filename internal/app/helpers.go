@@ -15,9 +15,6 @@ func encode[T any](w http.ResponseWriter, status int, v T) error {
     w.Header().Set("Content-Type", "application/json")
     w.WriteHeader(status)
 
-    fmt.Println("encode")
-    fmt.Println(v)
-    fmt.Println("--------")
     if err := json.NewEncoder(w).Encode(v); err != nil {
         return fmt.Errorf("encoding: %w", err)
     }

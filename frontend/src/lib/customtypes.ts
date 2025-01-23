@@ -16,5 +16,9 @@ export type GameResponse = {
     move: {
         correct: boolean
         words: string[]
+        subjects: {
+            id: number
+            name: string
+        }[]
     }
 }

@@ -7,8 +7,8 @@
     let words = $state([])
     let gameStatus = $state(2)
     let gid = $state(0)
-    let hasMove = $state(false)
     let turns = $state(0)
+    let subjects = $state([])
 
     setContext("select", (value: string, wasSelected: string) => {
         if (![2, 5, 6].includes(gameStatus)) return;
@@ -42,6 +42,7 @@
         words = data.words
         turns = data.moveLeft
         gameStatus = data.status
+        subjects = []
     }
 
     async function submitMoves(moves: string[]) {
@@ -59,10 +60,19 @@
         words = data.words
         turns = data.moveLeft
         gameStatus = data.status
-        hasMove = data.hasMove
 
-        if (data.move.correct) return setCorrect(data.move.words)
+        if (data.move.correct) {
+            setSubjects(data.move.subjects)
+            return setCorrect(data.move.words)
+        }
+
         return setWrong(data.move.words)
+    }
+
+    function setSubjects(val: { id: number, name: string }[]) {
+        subjects = val.map((v) => {
+            return [v.id, v.name]
+        })
     }
 
     function setCorrect(val: string[]) {
@@ -99,6 +109,19 @@
                 <GamePiece value={word.word} correct={word.correct} wrong={word.wrong} subject={word.subject} selected={word.selected} />
             {/each}
         </section>
+
+        <aside>
+            <ul>
+                {#each subjects as subject}
+                    <li
+                        class:s0={subject[0] == 0}
+                        class:s1={subject[0] == 1}
+                        class:s2={subject[0] == 2}
+                        class:s3={subject[0] == 3}
+                    >{subject[1]}</li>
+                {/each}
+            </ul>
+        </aside>
     </div>
 </Layout>
 
@@ -109,5 +132,42 @@
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         grid-template-rows: repeat(4, 1fr);
+    }
+
+    aside {
+        ul {
+            padding: 0;
+        }
+
+        li {
+            position: relative;
+            padding-left: 3rem;
+
+            &:before {
+                display: block;
+                position: absolute;
+                content: "";
+                width: 2rem;
+                height: 2rem;
+                left: 0;
+                top: 0;
+            }
+
+            &.s0:before {
+                background-color: lightblue;
+            }
+
+            &.s1:before {
+                background-color: lightpink;
+            }
+
+            &.s2:before {
+                background-color: lightgoldenrodyellow;
+            }
+
+            &.s3:before {
+                background-color: lightsteelblue;
+            }
+        }
     }
 </style>

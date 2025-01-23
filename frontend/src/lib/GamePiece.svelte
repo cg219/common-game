@@ -45,18 +45,22 @@
 
         &.correct.s0 {
             background-color: lightblue;
+            color: black;
         }
 
         &.correct.s1 {
             background-color: lightpink;
+            color: black;
         }
 
         &.correct.s2 {
             background-color: lightgoldenrodyellow;
+            color: black;
         }
 
         &.correct.s3 {
             background-color: lightsteelblue;
+            color: black;
         }
     }
 </style>

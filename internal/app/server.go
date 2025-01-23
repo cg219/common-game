@@ -45,10 +45,18 @@ type GameResponse struct {
     TurnsLeft int `json:"moveLeft"`
     Status int `json:"status"`
     HasMove bool  `json:"hasMove"`
-    Move struct {
-        Correct bool `json:"correct"`
-        Words  []string `json:"words,omitempty"`
-    } `json:"move,omitempty"`
+    Move GameResponseMove `json:"move,omitempty"`
+}
+
+type GameResponseSubject struct {
+    Id int `json:"id"`
+    Name string `json:"name"`
+}
+
+type GameResponseMove struct {
+    Correct bool `json:"correct"`
+    Words  []string `json:"words,omitempty"`
+    Subjects []GameResponseSubject `json:"subjects,omitempty"`
 }
 
 type SuccessResp struct {
@@ -247,20 +255,6 @@ func (s *Server) UpdateGame(w http.ResponseWriter, r *http.Request) error {
         return fmt.Errorf(INTERNAL_ERROR)
     }
 
-    // err = r.ParseForm()
-    // if err != nil {
-    //     log.Printf("Error parsing form: %s", err)
-    //     return fmt.Errorf("Internal Server Error")
-    // }
-    //
-    // var words [4]string
-    //
-    // for k, v := range r.Form {
-    //     if strings.EqualFold(k,"words") {
-    //         copy(words[:], v[:4])
-    //     }
-    // }
-
     d.mch <- game.Move{ Words: body.Words }
     status := <- d.sch
 
@@ -293,16 +287,27 @@ func (s *Server) UpdateGame(w http.ResponseWriter, r *http.Request) error {
         })
     }
 
-    // tmpl := template.Must(template.ParseFiles("templates/fragments/game-board.html"))
+    subjects := make([]GameResponseSubject, 0)
+
+    if status.Status.Metadata.Correct {
+        for _, v := range d.game.CompletedSubjects {
+           subjects = append(subjects, GameResponseSubject{
+                Id: v,
+                Name: d.game.Subjects[v].Name,
+            }) 
+        }
+    }
+
     gr := &GameResponse{
         GameId: body.Gid,
         Words: d.game.WordsWithData(),
         TurnsLeft: d.game.MaxTurns - d.game.Metadata.WrongTurns,
         Status: status.Status.Status().Enum(),
         HasMove: true,
-        Move: struct{Correct bool "json:\"correct\""; Words []string "json:\"words,omitempty\""}{
+        Move: GameResponseMove{
             Correct: status.Status.Metadata.Correct,
             Words: status.Status.Metadata.Move.Words[:],
+            Subjects: subjects,
         },
     }
 

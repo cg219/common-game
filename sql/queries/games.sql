@@ -2,6 +2,11 @@
 INSERT INTO subjects(name, word1, word2, word3, word4)
 VALUES (?, ?, ?, ?, ?);
 
+-- name: GetSubjectName :one
+SELECT name
+FROM subjects
+WHERE id = ?;
+
 -- name: GetSubjects :many
 SELECT name, word1, word2, word3, word4 FROM subjects;
 
