@@ -1,20 +1,24 @@
 services:
-  app:
+  commongame:
     build:
       context: .
       target: dev
     working_dir: /app
+    command: /bin/bash -c -l ./build.dev.sh
     environment:
       - PORT=8080
     env_file:
       - .env
-    command: /usr/local/bin/thecommongame
     ports:
-      - 8080:8080
-    volumes:
-      - $PWD:/app
-      - thecommongame-data:/app/data
-
-volumes:
-  thecommongame-data:
-
+      - 3006:8080
+    develop:
+      watch:
+        - action: rebuild
+          path: ./**/*.go
+        - action: rebuild
+          path: ./go.mod
+        - action: rebuild
+          path: ./go.sum
+        - action: sync+restart
+          path: .
+          target: /app
