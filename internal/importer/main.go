@@ -66,7 +66,7 @@ func importSubject(ctx context.Context, row []string, query *database.Queries, c
         if err != nil {
             if err == sql.ErrNoRows {
                 fmt.Printf("adding word: %s\n", word)
-                err = qtx.SaveWord(ctx, database.SaveWordParams{ Value: val, Word: word })
+                err = qtx.SaveWord(ctx, database.SaveWordParams{ Value: val, Word: strings.TrimSpace(word) })
                 if err != nil {
                     tx.Rollback()
                     log.Fatalf("err saving word value: %s", err.Error())

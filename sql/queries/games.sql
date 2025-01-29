@@ -88,18 +88,39 @@ SELECT id FROM third
 UNION ALL
 SELECT id FROM fourth;
 
--- name: GetBoardForGame :one
+-- name: GetRecentlyPlayedSubjects :many
 WITH gids AS (
     SELECT gid
-    FROM users_games
-    WHERE uid = ?
-)
-SELECT id, subject1, subject2, subject3, subject4
-FROM boards
-WHERE id NOT IN (
+    FROM users_games ug
+    WHERE ug.uid = ?
+),
+bids AS (
     SELECT bid
-    FROM games
-    WHERE id IN gids
+    FROM games g
+    WHERE g.id IN gids
+)
+SELECT b.subject1, b.subject2, b.subject3, b.subject4
+FROM boards b
+WHERE b.id IN bids
+ORDER BY b.id DESC
+LIMIT 5;
+
+-- name: GetBoardForGame :one
+WITH sids AS (
+    SELECT s.id
+    FROM subjects s
+    WHERE s.id IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    LIMIT 16
+)
+SELECT b.id, b.subject1, b.subject2, b.subject3, b.subject4
+FROM boards b
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM sids s
+    WHERE s.id = b.subject1
+    OR s.id = b.subject2
+    OR s.id = b.subject3
+    OR s.id = b.subject4
 )
 LIMIT 1;
 

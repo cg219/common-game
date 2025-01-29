@@ -140,7 +140,45 @@ func (s *Server) CreateGame(w http.ResponseWriter, r *http.Request) error {
         return fmt.Errorf(INTERNAL_ERROR)
     }
 
-    board, err := s.appcfg.database.GetBoardForGame(r.Context(), user.ID)
+    avoid, err := s.appcfg.database.GetRecentlyPlayedSubjects(r.Context(), user.ID)
+    if err != nil {
+        s.log.Error("Error retreiving recent subjects", "err",err)
+        return fmt.Errorf(INTERNAL_ERROR)
+    }
+
+    avoidList := make([]int64, 0)
+
+    for _, v := range avoid {
+        avoidList = append(avoidList, v.Subject1.Int64)
+        avoidList = append(avoidList, v.Subject2.Int64)
+        avoidList = append(avoidList, v.Subject3.Int64)
+        avoidList = append(avoidList, v.Subject4.Int64)
+    }
+
+    pad := 16 - len(avoidList)
+
+    for range pad {
+        avoidList = append(avoidList, int64(0))
+    }
+
+    board, err := s.appcfg.database.GetBoardForGame(r.Context(), database.GetBoardForGameParams{
+        ID: avoidList[0],
+        ID_2: avoidList[1],
+        ID_3: avoidList[2],
+        ID_4: avoidList[3],
+        ID_5: avoidList[4],
+        ID_6: avoidList[5],
+        ID_7: avoidList[6],
+        ID_8: avoidList[7],
+        ID_9: avoidList[8],
+        ID_10: avoidList[9],
+        ID_11: avoidList[10],
+        ID_12: avoidList[11],
+        ID_13: avoidList[12],
+        ID_14: avoidList[13],
+        ID_15: avoidList[14],
+        ID_16: avoidList[15],
+    })
     if err != nil {
         s.log.Error("Error retreiving subjects", "err",err)
         return fmt.Errorf(INTERNAL_ERROR)

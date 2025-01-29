@@ -11,20 +11,43 @@ import (
 )
 
 const getBoardForGame = `-- name: GetBoardForGame :one
-WITH gids AS (
-    SELECT gid
-    FROM users_games
-    WHERE uid = ?
+WITH sids AS (
+    SELECT s.id
+    FROM subjects s
+    WHERE s.id IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    LIMIT 16
 )
-SELECT id, subject1, subject2, subject3, subject4
-FROM boards
-WHERE id NOT IN (
-    SELECT bid
-    FROM games
-    WHERE id IN gids
+SELECT b.id, b.subject1, b.subject2, b.subject3, b.subject4
+FROM boards b
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM sids s
+    WHERE s.id = b.subject1
+    OR s.id = b.subject2
+    OR s.id = b.subject3
+    OR s.id = b.subject4
 )
 LIMIT 1
 `
+
+type GetBoardForGameParams struct {
+	ID    int64
+	ID_2  int64
+	ID_3  int64
+	ID_4  int64
+	ID_5  int64
+	ID_6  int64
+	ID_7  int64
+	ID_8  int64
+	ID_9  int64
+	ID_10 int64
+	ID_11 int64
+	ID_12 int64
+	ID_13 int64
+	ID_14 int64
+	ID_15 int64
+	ID_16 int64
+}
 
 type GetBoardForGameRow struct {
 	ID       int64
@@ -34,8 +57,25 @@ type GetBoardForGameRow struct {
 	Subject4 sql.NullInt64
 }
 
-func (q *Queries) GetBoardForGame(ctx context.Context, uid int64) (GetBoardForGameRow, error) {
-	row := q.db.QueryRowContext(ctx, getBoardForGame, uid)
+func (q *Queries) GetBoardForGame(ctx context.Context, arg GetBoardForGameParams) (GetBoardForGameRow, error) {
+	row := q.db.QueryRowContext(ctx, getBoardForGame,
+		arg.ID,
+		arg.ID_2,
+		arg.ID_3,
+		arg.ID_4,
+		arg.ID_5,
+		arg.ID_6,
+		arg.ID_7,
+		arg.ID_8,
+		arg.ID_9,
+		arg.ID_10,
+		arg.ID_11,
+		arg.ID_12,
+		arg.ID_13,
+		arg.ID_14,
+		arg.ID_15,
+		arg.ID_16,
+	)
 	var i GetBoardForGameRow
 	err := row.Scan(
 		&i.ID,
@@ -59,6 +99,59 @@ func (q *Queries) GetGameUidByGameId(ctx context.Context, gid int64) (int64, err
 	var uid int64
 	err := row.Scan(&uid)
 	return uid, err
+}
+
+const getRecentlyPlayedSubjects = `-- name: GetRecentlyPlayedSubjects :many
+WITH gids AS (
+    SELECT gid
+    FROM users_games ug
+    WHERE ug.uid = ?
+),
+bids AS (
+    SELECT bid
+    FROM games g
+    WHERE g.id IN gids
+)
+SELECT b.subject1, b.subject2, b.subject3, b.subject4
+FROM boards b
+WHERE b.id IN bids
+ORDER BY b.id DESC
+LIMIT 5
+`
+
+type GetRecentlyPlayedSubjectsRow struct {
+	Subject1 sql.NullInt64
+	Subject2 sql.NullInt64
+	Subject3 sql.NullInt64
+	Subject4 sql.NullInt64
+}
+
+func (q *Queries) GetRecentlyPlayedSubjects(ctx context.Context, uid int64) ([]GetRecentlyPlayedSubjectsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getRecentlyPlayedSubjects, uid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRecentlyPlayedSubjectsRow
+	for rows.Next() {
+		var i GetRecentlyPlayedSubjectsRow
+		if err := rows.Scan(
+			&i.Subject1,
+			&i.Subject2,
+			&i.Subject3,
+			&i.Subject4,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getSubjectName = `-- name: GetSubjectName :one
