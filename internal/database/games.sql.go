@@ -11,11 +11,21 @@ import (
 )
 
 const getBoardForGame = `-- name: GetBoardForGame :one
-WITH sids AS (
-    SELECT s.id
-    FROM subjects s
-    WHERE s.id IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+WITH gids AS (
+    SELECT gid
+    FROM users_games ug
+    WHERE ug.uid = ?
+),
+sids AS (
+    SELECT sub.id
+    FROM subjects sub
+    WHERE sub.id IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     LIMIT 16
+),
+bids AS (
+    SELECT bid
+    FROM games g
+    WHERE g.id IN gids
 )
 SELECT b.id, b.subject1, b.subject2, b.subject3, b.subject4
 FROM boards b
@@ -27,10 +37,13 @@ WHERE NOT EXISTS (
     OR s.id = b.subject3
     OR s.id = b.subject4
 )
+AND b.id NOT IN bids
+ORDER BY random()
 LIMIT 1
 `
 
 type GetBoardForGameParams struct {
+	Uid   int64
 	ID    int64
 	ID_2  int64
 	ID_3  int64
@@ -59,6 +72,7 @@ type GetBoardForGameRow struct {
 
 func (q *Queries) GetBoardForGame(ctx context.Context, arg GetBoardForGameParams) (GetBoardForGameRow, error) {
 	row := q.db.QueryRowContext(ctx, getBoardForGame,
+		arg.Uid,
 		arg.ID,
 		arg.ID_2,
 		arg.ID_3,

@@ -162,6 +162,7 @@ func (s *Server) CreateGame(w http.ResponseWriter, r *http.Request) error {
     }
 
     board, err := s.appcfg.database.GetBoardForGame(r.Context(), database.GetBoardForGameParams{
+        Uid: user.ID,
         ID: avoidList[0],
         ID_2: avoidList[1],
         ID_3: avoidList[2],

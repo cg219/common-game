@@ -22,3 +22,8 @@ services:
         - action: sync+restart
           path: .
           target: /app
+          ignore:
+            - ./frontend/node_modules
+            - ./data
+    volumes:
+      - $PWD/data:/app/data
