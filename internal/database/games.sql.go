@@ -10,6 +10,30 @@ import (
 	"database/sql"
 )
 
+const getActiveGidForUid = `-- name: GetActiveGidForUid :one
+WITH lgid AS (
+    SELECT ug.gid
+    FROM users_games ug
+    WHERE ug.uid = ?
+    ORDER BY ug.gid DESC
+    LIMIT 1
+),
+agid AS (
+    SELECT g.id
+    FROM games g
+    WHERE g.id = (SELECT l.gid FROM lgid l) AND g.active = 1
+    LIMIT 1
+)
+SELECT CAST(COALESCE((SELECT id FROM agid), 0) AS INTEGER)
+`
+
+func (q *Queries) GetActiveGidForUid(ctx context.Context, uid int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getActiveGidForUid, uid)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const getBoardForGame = `-- name: GetBoardForGame :one
 WITH gids AS (
     SELECT gid

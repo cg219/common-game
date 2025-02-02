@@ -175,6 +175,22 @@ FROM users_games
 WHERE gid = ?
 LIMIT 1;
 
+-- name: GetActiveGidForUid :one
+WITH lgid AS (
+    SELECT ug.gid
+    FROM users_games ug
+    WHERE ug.uid = ?
+    ORDER BY ug.gid DESC
+    LIMIT 1
+),
+agid AS (
+    SELECT g.id
+    FROM games g
+    WHERE g.id = (SELECT l.gid FROM lgid l) AND g.active = 1
+    LIMIT 1
+)
+SELECT CAST(COALESCE((SELECT id FROM agid), 0) AS INTEGER);
+
 -- name: UpdateGame :exec
 UPDATE games
 SET active = ?,

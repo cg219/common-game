@@ -90,7 +90,7 @@
     }
 </script>
 
-<Layout title="The Common Game" subtitle="Start">
+<Layout title="The Common Game" subtitle="Match groups of 4 words that have something in common.">
     <form onsubmit={newGame} class="container" id="newgame" method="POST" action="/api/game">
         <button type="submit">Start a New Game</button>
     </form>
