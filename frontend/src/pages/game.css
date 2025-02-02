@@ -1,0 +1,39 @@
+.game {
+    width: 600px;
+    height: 600px;
+
+    h3 {
+        /* display: none; */
+    }
+
+
+    .game-piece {
+        width: 100%;
+        height: 100%;
+
+        &.selected {
+            background-color: #CFCFCF;
+        }
+
+        &.wrong {
+            background-color: #EF0038;
+        }
+
+        &.correct[data-subject="0"] {
+            background-color: lightblue;
+        }
+
+        &.correct[data-subject="1"] {
+            background-color: lightpink;
+        }
+
+        &.correct[data-subject="2"] {
+            background-color: lightgoldenrodyellow;
+        }
+
+        &.correct[data-subject="3"] {
+            background-color: lightsteelblue;
+        }
+    }
+}
+
