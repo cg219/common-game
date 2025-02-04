@@ -17,9 +17,18 @@ import (
 )
 
 type Config struct {
+    App struct {
+        Url string `yaml:"url"`
+    } `yaml:"app"`
     Data struct {
         Path string `yaml:"data"`
     } `yaml:"app"`
+    Email struct {
+        User string `yaml:"user"`
+        Host string `yaml:"host"`
+        From string `yaml:"from"`
+        Key string `yaml:"key"`
+    } `yaml:"email"`
     Frontend embed.FS
     Migrations embed.FS
 }
@@ -28,12 +37,17 @@ type AppCfg struct {
     config Config
     database *database.Queries
     connection *sql.DB
+    emails chan Email
 }
 
 func NewConfig(frontend embed.FS, migrations embed.FS) *Config {
     cfg := &Config{}
-
     cfg.Data.Path = os.Getenv("APP_DATA")
+    cfg.App.Url = os.Getenv("APP_URL")
+    cfg.Email.User = os.Getenv("SMTP_USER")
+    cfg.Email.From = os.Getenv("SMTP_FROM")
+    cfg.Email.Host = os.Getenv("SMTP_HOST")
+    cfg.Email.Key = os.Getenv("SMTP_KEY")
     cfg.Frontend = frontend
     cfg.Migrations = migrations
 
@@ -56,6 +70,7 @@ func NewConfigFromSecrets(data []byte, frontend embed.FS, migrations embed.FS) *
 func Run(config Config) error {
     cfg := &AppCfg{
         config: config,
+        emails: make(chan Email),
     }
 
     cwd, _ := os.Getwd();
@@ -77,18 +92,19 @@ func Run(config Config) error {
     cfg.connection = db
     ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
     defer stop()
+    defer close(cfg.emails)
 
     // App Logic
+    go func() {
+        StartEmailServer(cfg)
+    }()
+
     go func() {
         StartServer(cfg)
     }()
 
-    for {
-        select {
-        case <- ctx.Done():
-            log.Println("terminating Run()")
-            return nil
-        }
-    }
+    <-ctx.Done()
+    log.Println("terminating Run()")
+    return nil
 }
 
