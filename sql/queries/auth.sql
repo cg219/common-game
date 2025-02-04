@@ -18,7 +18,7 @@ INSERT INTO users(username, email, password)
 VALUES(?, ?, ?);
 
 -- name: GetUser :one
-SELECT id, username
+SELECT id, username, email
 FROM users
 WHERE username = ?;
 

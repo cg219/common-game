@@ -480,9 +480,21 @@ func (s *Server) ForgotPassword(w http.ResponseWriter, r *http.Request) error {
         s.log.Error("resetting pass", "err", err)
     }
 
-    // TODO: Setup email service to send this to user email
-    s.log.Info("Reset Link:", "url", fmt.Sprintf("http://localhost:%s/reset/%s", "3006", reset))
+    user, err := s.appcfg.database.GetUser(r.Context(), username)
+    if err != nil {
+        s.log.Error("retreiving user for reset pass", "err", err)
+    }
 
+    e := Email{
+        From: s.appcfg.config.Email.From,
+        To: user.Email,
+        Subject: "The Common Game - Forgot Password",
+        Body: fmt.Sprintf("Reset your password link:\n%s/reset/%s", s.appcfg.config.App.Url, reset),
+    }
+
+    s.appcfg.emails <- e
+
+    s.log.Info("Reset Link:", "url", fmt.Sprintf("Reset your password link:\n%s/reset/%s", s.appcfg.config.App.Url, reset))
     return nil
 }
 

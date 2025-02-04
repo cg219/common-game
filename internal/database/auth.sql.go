@@ -83,7 +83,7 @@ func (q *Queries) GetApiKeysForUid(ctx context.Context, uid sql.NullInt64) ([]Ge
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, username
+SELECT id, username, email
 FROM users
 WHERE username = ?
 `
@@ -91,12 +91,13 @@ WHERE username = ?
 type GetUserRow struct {
 	ID       int64
 	Username string
+	Email    string
 }
 
 func (q *Queries) GetUser(ctx context.Context, username string) (GetUserRow, error) {
 	row := q.db.QueryRowContext(ctx, getUser, username)
 	var i GetUserRow
-	err := row.Scan(&i.ID, &i.Username)
+	err := row.Scan(&i.ID, &i.Username, &i.Email)
 	return i, err
 }
 
