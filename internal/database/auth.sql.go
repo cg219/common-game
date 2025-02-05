@@ -83,7 +83,7 @@ func (q *Queries) GetApiKeysForUid(ctx context.Context, uid sql.NullInt64) ([]Ge
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, username, email
+SELECT id, username, email, valid
 FROM users
 WHERE username = ?
 `
@@ -92,12 +92,37 @@ type GetUserRow struct {
 	ID       int64
 	Username string
 	Email    string
+	Valid    sql.NullInt64
 }
 
 func (q *Queries) GetUser(ctx context.Context, username string) (GetUserRow, error) {
 	row := q.db.QueryRowContext(ctx, getUser, username)
 	var i GetUserRow
-	err := row.Scan(&i.ID, &i.Username, &i.Email)
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.Valid,
+	)
+	return i, err
+}
+
+const getUserByValidToken = `-- name: GetUserByValidToken :one
+SELECT id, username
+FROM users
+WHERE valid_token = ?
+LIMIT 1
+`
+
+type GetUserByValidTokenRow struct {
+	ID       int64
+	Username string
+}
+
+func (q *Queries) GetUserByValidToken(ctx context.Context, validToken sql.NullString) (GetUserByValidTokenRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByValidToken, validToken)
+	var i GetUserByValidTokenRow
+	err := row.Scan(&i.ID, &i.Username)
 	return i, err
 }
 
@@ -136,7 +161,7 @@ func (q *Queries) GetUserSession(ctx context.Context, arg GetUserSessionParams) 
 }
 
 const getUserWithPassword = `-- name: GetUserWithPassword :one
-SELECT username, password
+SELECT username, password, valid
 FROM users
 WHERE username = ?
 `
@@ -144,13 +169,25 @@ WHERE username = ?
 type GetUserWithPasswordRow struct {
 	Username string
 	Password string
+	Valid    sql.NullInt64
 }
 
 func (q *Queries) GetUserWithPassword(ctx context.Context, username string) (GetUserWithPasswordRow, error) {
 	row := q.db.QueryRowContext(ctx, getUserWithPassword, username)
 	var i GetUserWithPasswordRow
-	err := row.Scan(&i.Username, &i.Password)
+	err := row.Scan(&i.Username, &i.Password, &i.Valid)
 	return i, err
+}
+
+const invalidateUser = `-- name: InvalidateUser :exec
+UPDATE users
+SET valid = NULL
+WHERE username = ?
+`
+
+func (q *Queries) InvalidateUser(ctx context.Context, username string) error {
+	_, err := q.db.ExecContext(ctx, invalidateUser, username)
+	return err
 }
 
 const invalidateUserSession = `-- name: InvalidateUserSession :exec
@@ -205,18 +242,24 @@ func (q *Queries) SaveApiKey(ctx context.Context, arg SaveApiKeyParams) error {
 }
 
 const saveUser = `-- name: SaveUser :exec
-INSERT INTO users(username, email, password)
-VALUES(?, ?, ?)
+INSERT INTO users(username, email, password, valid_token)
+VALUES(?, ?, ?, ?)
 `
 
 type SaveUserParams struct {
-	Username string
-	Email    string
-	Password string
+	Username   string
+	Email      string
+	Password   string
+	ValidToken sql.NullString
 }
 
 func (q *Queries) SaveUser(ctx context.Context, arg SaveUserParams) error {
-	_, err := q.db.ExecContext(ctx, saveUser, arg.Username, arg.Email, arg.Password)
+	_, err := q.db.ExecContext(ctx, saveUser,
+		arg.Username,
+		arg.Email,
+		arg.Password,
+		arg.ValidToken,
+	)
 	return err
 }
 
@@ -250,5 +293,17 @@ type SetPasswordResetParams struct {
 
 func (q *Queries) SetPasswordReset(ctx context.Context, arg SetPasswordResetParams) error {
 	_, err := q.db.ExecContext(ctx, setPasswordReset, arg.Reset, arg.ResetTime, arg.Username)
+	return err
+}
+
+const validateUser = `-- name: ValidateUser :exec
+UPDATE users
+SET valid = strftime("%s", "now"),
+    valid_token = NULL
+WHERE username = ?
+`
+
+func (q *Queries) ValidateUser(ctx context.Context, username string) error {
+	_, err := q.db.ExecContext(ctx, validateUser, username)
 	return err
 }

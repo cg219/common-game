@@ -122,6 +122,7 @@ func addRoutes(srv *Server) {
     srv.mux.Handle("POST /auth/register", srv.handle(srv.Register))
     srv.mux.Handle("POST /auth/login", srv.handle(srv.Login))
     srv.mux.Handle("POST /auth/logout", srv.handle(srv.UserOnly, srv.Logout))
+    srv.mux.Handle("GET /validate/{validvalue}", srv.handle(srv.ValidateRegistration))
     srv.mux.Handle("GET /reset/{resetvalue}", srv.handle(srv.getResetPage))
     srv.mux.Handle("POST /reset/{resetvalue}", srv.handle(srv.GetResetPasswordData))
 }
@@ -597,6 +598,10 @@ func (s *Server) login(ctx context.Context, username string, password string) bo
         return false 
     }
 
+    if !existingUser.Valid.Valid {
+        return false
+    }
+
     correct, _ := s.hasher.Compare(password, existingUser.Password)
     if !correct {
         s.log.Info("Password Mismatch", "password", password)
@@ -756,6 +761,35 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) error {
     s.setTokens(w, r, body.Username)
     encode(w, http.StatusOK, SuccessResp{ Success: true })
     s.log.Info("Register Body", "body", body)
+    return nil
+}
+
+func (s *Server) ValidateRegistration(w http.ResponseWriter, r *http.Request) error {
+    validvalue := r.PathValue("validvalue")
+    user, err := s.appcfg.database.GetUserByValidToken(r.Context(), sql.NullString{
+        String: validvalue,
+        Valid: true,
+    })
+
+    if err != nil {
+        if err == sql.ErrNoRows {
+            return fmt.Errorf(AUTH_ERROR)
+        } else {
+            s.log.Error("checking valid token", "token", validvalue, "err", err)
+            return fmt.Errorf(INTERNAL_ERROR)
+        }
+    }
+
+    if user.Username != "" {
+        err = s.appcfg.database.ValidateUser(r.Context(), user.Username)
+
+        if err != nil {
+            s.log.Error("validating user", "user", user.Username, "err", err)
+            return fmt.Errorf(INTERNAL_ERROR)
+        }
+    }
+
+    encode(w, 200, SuccessResp{ Success: true })
     return nil
 }
 

@@ -51,12 +51,14 @@ type Subject struct {
 }
 
 type User struct {
-	ID        int64
-	Username  string
-	Password  string
-	Email     string
-	Reset     sql.NullString
-	ResetTime sql.NullInt64
+	ID         int64
+	Username   string
+	Password   string
+	Email      string
+	Reset      sql.NullString
+	ResetTime  sql.NullInt64
+	Valid      sql.NullInt64
+	ValidToken sql.NullString
 }
 
 type UsersGame struct {

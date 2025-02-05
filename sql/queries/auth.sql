@@ -14,16 +14,33 @@ SET valid = 0
 WHERE accessToken = ? AND refreshToken = ?;
 
 -- name: SaveUser :exec
-INSERT INTO users(username, email, password)
-VALUES(?, ?, ?);
+INSERT INTO users(username, email, password, valid_token)
+VALUES(?, ?, ?, ?);
 
 -- name: GetUser :one
-SELECT id, username, email
+SELECT id, username, email, valid
 FROM users
 WHERE username = ?;
 
+-- name: GetUserByValidToken :one
+SELECT id, username
+FROM users
+WHERE valid_token = ?
+LIMIT 1;
+
+-- name: InvalidateUser :exec
+UPDATE users
+SET valid = NULL
+WHERE username = ?;
+
+-- name: ValidateUser :exec
+UPDATE users
+SET valid = strftime("%s", "now"),
+    valid_token = NULL
+WHERE username = ?;
+
 -- name: GetUserWithPassword :one
-SELECT username, password
+SELECT username, password, valid
 FROM users
 WHERE username = ?;
 
