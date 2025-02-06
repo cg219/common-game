@@ -10,6 +10,56 @@ import (
 	"database/sql"
 )
 
+const getActiveGames = `-- name: GetActiveGames :many
+SELECT g.id, g.turns, g.wrong, b.id, b.subject1, b.subject2, b.subject3, b.subject4
+FROM games g
+JOIN boards b ON g.bid = b.id
+WHERE g.active = true
+`
+
+type GetActiveGamesRow struct {
+	ID       int64
+	Turns    sql.NullInt64
+	Wrong    sql.NullInt64
+	ID_2     int64
+	Subject1 sql.NullInt64
+	Subject2 sql.NullInt64
+	Subject3 sql.NullInt64
+	Subject4 sql.NullInt64
+}
+
+func (q *Queries) GetActiveGames(ctx context.Context) ([]GetActiveGamesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getActiveGames)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetActiveGamesRow
+	for rows.Next() {
+		var i GetActiveGamesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Turns,
+			&i.Wrong,
+			&i.ID_2,
+			&i.Subject1,
+			&i.Subject2,
+			&i.Subject3,
+			&i.Subject4,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getActiveGidForUid = `-- name: GetActiveGidForUid :one
 WITH lgid AS (
     SELECT ug.gid
