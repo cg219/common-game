@@ -111,8 +111,8 @@ func addRoutes(srv *Server) {
         w.WriteHeader(http.StatusNotFound)
     })
 
-    srv.mux.Handle("GET /", srv.handle(srv.getLoginPage))
-    srv.mux.Handle("GET /game", srv.handle(srv.getGamePage))
+    srv.mux.Handle("GET /", srv.handle(srv.RedirectAuthenticated("/game", true), srv.getLoginPage))
+    srv.mux.Handle("GET /game", srv.handle(srv.RedirectAuthenticated("/", false), srv.getGamePage))
     srv.mux.Handle("GET /assets/", http.StripPrefix("/assets", http.FileServer(http.FS(static))))
     srv.mux.Handle("POST /api/generate-apikey/{name}", srv.handle(srv.UserOnly, srv.GenerateAPIKey))
     srv.mux.Handle("POST /api/forgot-password", srv.handle(srv.ForgotPassword))
@@ -122,7 +122,7 @@ func addRoutes(srv *Server) {
     srv.mux.Handle("POST /auth/register", srv.handle(srv.Register))
     srv.mux.Handle("POST /auth/login", srv.handle(srv.Login))
     srv.mux.Handle("POST /auth/logout", srv.handle(srv.UserOnly, srv.Logout))
-    srv.mux.Handle("GET /validate/{validvalue}", srv.handle(srv.ValidateRegistration))
+    srv.mux.Handle("GET /validate/{validvalue}", srv.handle(srv.ValidateRegistration)) 
     srv.mux.Handle("GET /reset/{resetvalue}", srv.handle(srv.getResetPage))
     srv.mux.Handle("POST /reset/{resetvalue}", srv.handle(srv.GetResetPasswordData))
 }
@@ -747,18 +747,31 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) error {
         return fmt.Errorf(INTERNAL_ERROR)
     }
 
+    validbytes := make([]byte, 32)
+    rand.Read(validbytes)
+    validToken := base64.URLEncoding.EncodeToString(validbytes)[:16]
+
     err = s.appcfg.database.SaveUser(r.Context(), database.SaveUserParams{
         Username: body.Username,
         Email: body.Email,
         Password: hashPass,
+        ValidToken: sql.NullString{ String: validToken, Valid: true },
     })
+
+    e := Email{
+        From: s.appcfg.config.Email.From,
+        To: body.Email,
+        Subject: "The Common Game - Validate Email",
+        Body: fmt.Sprintf("Validate your email link:\n%s/validate/%s", s.appcfg.config.App.Url, validToken),
+    }
+
+    s.appcfg.emails <- e
 
     if err != nil {
         s.log.Error("Saving New User", "username", body.Username, "err", err)
         return fmt.Errorf(INTERNAL_ERROR)
     }
 
-    s.setTokens(w, r, body.Username)
     encode(w, http.StatusOK, SuccessResp{ Success: true })
     s.log.Info("Register Body", "body", body)
     return nil
@@ -773,7 +786,8 @@ func (s *Server) ValidateRegistration(w http.ResponseWriter, r *http.Request) er
 
     if err != nil {
         if err == sql.ErrNoRows {
-            return fmt.Errorf(AUTH_ERROR)
+            http.Redirect(w, r, "/", http.StatusSeeOther)
+            return nil
         } else {
             s.log.Error("checking valid token", "token", validvalue, "err", err)
             return fmt.Errorf(INTERNAL_ERROR)
@@ -787,9 +801,13 @@ func (s *Server) ValidateRegistration(w http.ResponseWriter, r *http.Request) er
             s.log.Error("validating user", "user", user.Username, "err", err)
             return fmt.Errorf(INTERNAL_ERROR)
         }
+
+        s.setTokens(w, r, user.Username)
+        http.Redirect(w, r, "/game", http.StatusSeeOther)
+        return nil
     }
 
-    encode(w, 200, SuccessResp{ Success: true })
+    http.Redirect(w, r, "/", http.StatusSeeOther)
     return nil
 }
 
