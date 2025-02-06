@@ -100,6 +100,38 @@ func NewServer(cfg *AppCfg) *Server {
     }
 }
 
+func loadActiveGames(srv *Server) {
+    games, err := srv.appcfg.database.GetActiveGames(context.Background())
+    if err != nil {
+        srv.log.Error("loading active games", "err", err)
+        return
+    }
+
+    for _, cg := range games {
+        populatedBoard, err := srv.appcfg.database.PopulateSubjects(context.Background(), database.PopulateSubjectsParams{
+            ID: cg.Subject1.Int64,
+            ID_2: cg.Subject2.Int64,
+            ID_3: cg.Subject3.Int64,
+            ID_4: cg.Subject4.Int64,
+        })
+
+        if err != nil {
+            srv.log.Error("populating active games", "err", err)
+            return
+        }
+
+        // TODO: Update game logic to maintain state or be able to export an encoding to load from
+        g := game.Create(populatedBoard)
+
+        statusCh, moveCh := g.Run()
+        srv.games[int(cg.ID)] = &LiveGameData{
+            game: g,
+            mch: moveCh,
+            sch: statusCh,
+        }
+    }
+}
+
 func addRoutes(srv *Server) {
     static, err := fs.Sub(srv.appcfg.config.Frontend, "static-app/assets")
 
@@ -862,6 +894,7 @@ func (s *Server) GetResetPasswordData(w http.ResponseWriter, r *http.Request) er
 func StartServer(cfg *AppCfg) error {
     srv := NewServer(cfg)
 
+    loadActiveGames(srv)
     addRoutes(srv)
 
     server := &http.Server{

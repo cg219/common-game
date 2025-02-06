@@ -175,6 +175,12 @@ FROM users_games
 WHERE gid = ?
 LIMIT 1;
 
+-- name: GetActiveGames :many
+SELECT g.id, g.turns, g.wrong, b.id, b.subject1, b.subject2, b.subject3, b.subject4
+FROM games g
+JOIN boards b ON g.bid = b.id
+WHERE g.active = true;
+
 -- name: GetActiveGidForUid :one
 WITH lgid AS (
     SELECT ug.gid
