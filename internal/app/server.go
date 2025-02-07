@@ -157,12 +157,20 @@ func addRoutes(srv *Server) {
     srv.mux.Handle("GET /validate/{validvalue}", srv.handle(srv.ValidateRegistration)) 
     srv.mux.Handle("GET /reset/{resetvalue}", srv.handle(srv.getResetPage))
     srv.mux.Handle("POST /reset/{resetvalue}", srv.handle(srv.GetResetPasswordData))
+    srv.mux.Handle("GET /healthcheck", srv.handle(srv.HealthCheck))
 }
 
 func (h CandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     if err := h(w, r); err != nil {
         fmt.Println("OOPS")
     }
+}
+
+func (s *Server) HealthCheck(w http.ResponseWriter, r *http.Request) error {
+    resp := SuccessResp{ Success: true }
+
+    encode(w, http.StatusOK, resp)
+    return nil
 }
 
 func (s *Server) GetGame(ctx context.Context, uid int64) (*game.Game, int, error) {

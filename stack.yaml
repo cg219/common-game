@@ -1,8 +1,8 @@
 version: "3.7"
 
 services:
-  thecommongame:
-    image: ghcr.io/cg219/thecommongame:main
+  app:
+    image: ghcr.io/cg219/common-game:main
     environment:
       - APP_DATA=data/database.db
       - APP=/run/secrets/npsecrets
@@ -13,10 +13,25 @@ services:
       - thecommongame-data:/app/data
     secrets:
       - npsecrets
+  backup:
+    image: ghcr.io/cg219/common-game:main
+    environment:
+      - APP_DATA=data/database.db
+      - NP_CREDTENTIALS=/run/secrets/npsecrets
+      - APP_EXIT_BACKUP=1
+      - PORT=8081
+    command: ["/bin/sh", "-c", "while ! wget --spider -q http://thecommongame_app:8080/health; do sleep 2; done; /app/backup"]
+    volumes:
+      - thecommongame-data:/app/data
+    secrets:
+      - npsecrets
+    deploy:
+      restart_policy:
+        condition: on-failure
 
 secrets:
   npsecrets:
-    file: secrets.yml
+    file: secrets.yaml
 
 volumes:
   thecommongame-data:
