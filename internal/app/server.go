@@ -366,6 +366,8 @@ func (s *Server) UpdateGame(w http.ResponseWriter, r *http.Request) error {
         return fmt.Errorf(INTERNAL_ERROR)
     }
 
+    s.log.Info("making move", "game", body.Gid)
+
     d.mch <- game.Move{ Words: body.Words }
     status := <- d.sch
 

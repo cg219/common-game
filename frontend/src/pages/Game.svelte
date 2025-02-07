@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { GameResponse } from "../lib/customtypes";
     import Layout from "../lib/Layout.svelte";
-    import { setContext } from "svelte";
+    import { onMount, setContext } from "svelte";
     import GamePiece from "../lib/GamePiece.svelte";
 
     let words = $state([])
@@ -29,8 +29,12 @@
         }
     })
 
-    async function newGame(evt: Event) {
-        evt.preventDefault()
+    onMount(() => {
+        getGame()
+    })
+
+    async function getGame(evt?: Event) {
+        evt?.preventDefault()
 
         const res = await fetch("/api/game", {
             method: "POST"
@@ -91,9 +95,11 @@
 </script>
 
 <Layout title="The Common Game" subtitle="Match groups of 4 words that have something in common.">
-    <form onsubmit={newGame} class="container" id="newgame" method="POST" action="/api/game">
+    {#if (gameStatus == 0 || gameStatus == 1)}
+    <form onsubmit={getGame} class="container" id="newgame" method="POST" action="/api/game">
         <button type="submit">Start a New Game</button>
     </form>
+    {/if}
 
     <div class="game">
         {#if gameStatus == 0}

@@ -115,8 +115,9 @@ func loop(input <-chan Move, output chan<- StatusGroup, g *Game) {
     defer close(output)
 
     for {
-        select {
-        case move, ok := <-input:
+        // select {
+        // case move, ok := <-input:
+            move, ok := <-input
             if !ok {
                 return
             }
@@ -152,20 +153,20 @@ func loop(input <-chan Move, output chan<- StatusGroup, g *Game) {
                 LoopStatus: loopStatus,
                 Status: status,
             }
-        case <-tick.C:
-            g.IsInactive = true
-            status := Status{
-                Metadata: StatusMetadata{
-                    Type: Inactive,
-                },
-            }
-
-            output <- StatusGroup{
-                LoopStatus: Inactive,
-                Status: status,
-            } 
-
-            return
-        }
+        // case <-tick.C:
+        //     g.IsInactive = true
+        //     status := Status{
+        //         Metadata: StatusMetadata{
+        //             Type: Inactive,
+        //         },
+        //     }
+        //
+        //     output <- StatusGroup{
+        //         LoopStatus: Inactive,
+        //         Status: status,
+        //     } 
+        //
+        //     return
+        // }
     }
 }
