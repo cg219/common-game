@@ -105,10 +105,10 @@ func newGame(rows []database.PopulateSubjectsRow) *Game {
 }
 
 func loop(input <-chan Move, output chan<- StatusGroup, g *Game) {
-    tick := time.NewTicker(g.HealthTickInvteral)
+    // tick := time.NewTicker(g.HealthTickInvteral)
     g.Metadata.StartTime = time.Now().UTC()
 
-    defer tick.Stop()
+    // defer tick.Stop()
     defer func() {
         g.Metadata.EndTime = time.Now().UTC()
     }()
@@ -147,7 +147,7 @@ func loop(input <-chan Move, output chan<- StatusGroup, g *Game) {
             }
 
 
-            tick.Reset(g.HealthTickInvteral)
+            // tick.Reset(g.HealthTickInvteral)
 
             output <- StatusGroup{
                 LoopStatus: loopStatus,
