@@ -24,6 +24,15 @@ type Board struct {
 	Wins     sql.NullInt64
 }
 
+type Bugreport struct {
+	ID        int64
+	Problem   string
+	Result    string
+	Steps     string
+	CreatedAt int64
+	Uid       int64
+}
+
 type Game struct {
 	ID     int64
 	Active sql.NullBool
