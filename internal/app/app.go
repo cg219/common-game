@@ -19,6 +19,7 @@ import (
 type Config struct {
     App struct {
         Url string `yaml:"url"`
+        Admin string `yaml:"email"`
     } `yaml:"app"`
     Data struct {
         Path string `yaml:"data"`
@@ -44,6 +45,7 @@ func NewConfig(frontend embed.FS, migrations embed.FS) *Config {
     cfg := &Config{}
     cfg.Data.Path = os.Getenv("APP_DATA")
     cfg.App.Url = os.Getenv("APP_URL")
+    cfg.App.Admin = os.Getenv("APP_ADMIN_EMAIL")
     cfg.Email.User = os.Getenv("SMTP_USER")
     cfg.Email.From = os.Getenv("SMTP_FROM")
     cfg.Email.Host = os.Getenv("SMTP_HOST")

@@ -46,6 +46,9 @@ async function logout(evt: Event) {
                     {/if} 
                 {/each}
                 <li>
+                    <a href="/report">Report a Bug</a>
+                </li>
+                <li>
                     <a onclick={logout} href="#logout" class="contrast">Logout</a>
                 </li>
             </ul>

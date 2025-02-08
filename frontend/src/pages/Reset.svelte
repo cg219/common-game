@@ -1,6 +1,6 @@
 <script lang="ts">
+    import { onMount } from "svelte";
     import Layout from "../lib/Layout.svelte";
-    import type { Action } from "svelte/action";
 
     type Props = {
         valid: boolean
@@ -14,25 +14,19 @@
     let passwordConfirm = $state("")
     let valid = $state(false)
 
-    async function getData() {
+    onMount(async () => {
         const url = new URL(location.href)
         const res = await fetch(`/reset/${url.pathname.split("/").at(-1)}`, {
             method: "POST",
             credentials: "same-origin"
         })
 
-        return await res.json() as Props
-    }
+        const data = await res.json() as Props
 
-    const init: Action = () => {
-        $effect(() => {
-            getData().then((data) => {
-                valid = data.valid
-                reset = data.reset
-                valid = data.valid
-            })
-        })
-    }
+        valid = data.valid
+        reset = data.reset
+        valid = data.valid
+    })
 
     async function resetPassword(evt: Event) {
         evt.preventDefault()
@@ -54,21 +48,18 @@
     }
 </script>
 
-<div use:init>
-    <Layout title="thecommongame" subtitle="appname">
-        <h1>Reset Password</h1>
-        {#if valid}
-            <form class="container" id="reset" onsubmit={resetPassword} method="POST" action="/api/reset-password">
-                <input type="hidden" name="username" bind:value={username} />
-                <input type="hidden" name="reset" bind:value={reset}/>
-                <input type="password" name="password" placeholder="Password" bind:value={password} />
-                <input type="password" name="password-confirm" placeholder="Confirm Password" bind:value={passwordConfirm} />
-                <button type="submit">Reset Password</button>
-            </form>
-        {:else}
-            <p>Invalid Reset Link</p>
-            <a href="/">Go Back Home and Login</a>
-        {/if}
-    </Layout>
-</div>
-
+<Layout title="thecommongame" subtitle="appname">
+    <h1>Reset Password</h1>
+    {#if valid}
+        <form class="container" id="reset" onsubmit={resetPassword} method="POST" action="/api/reset-password">
+            <input type="hidden" name="username" bind:value={username} />
+            <input type="hidden" name="reset" bind:value={reset}/>
+            <input type="password" name="password" placeholder="Password" bind:value={password} />
+            <input type="password" name="password-confirm" placeholder="Confirm Password" bind:value={passwordConfirm} />
+            <button type="submit">Reset Password</button>
+        </form>
+    {:else}
+        <p>Invalid Reset Link</p>
+        <a href="/">Go Back Home and Login</a>
+    {/if}
+</Layout>

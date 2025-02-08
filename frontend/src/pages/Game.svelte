@@ -94,7 +94,7 @@
     }
 </script>
 
-<Layout title="The Common Game" subtitle="Match groups of 4 words that have something in common.">
+<Layout title="The Common Game" subtitle="Match groups of 4 words that have something in common." links={[]}>
     {#if (gameStatus == 0 || gameStatus == 1)}
     <form onsubmit={getGame} class="container" id="newgame" method="POST" action="/api/game">
         <button type="submit">Start a New Game</button>

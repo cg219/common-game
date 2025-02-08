@@ -145,10 +145,12 @@ func addRoutes(srv *Server) {
 
     srv.mux.Handle("GET /", srv.handle(srv.RedirectAuthenticated("/game", true), srv.getLoginPage))
     srv.mux.Handle("GET /game", srv.handle(srv.RedirectAuthenticated("/", false), srv.getGamePage))
+    srv.mux.Handle("GET /report", srv.handle(srv.RedirectAuthenticated("/", false), srv.getReportPage))
     srv.mux.Handle("GET /assets/", http.StripPrefix("/assets", http.FileServer(http.FS(static))))
     srv.mux.Handle("POST /api/generate-apikey/{name}", srv.handle(srv.UserOnly, srv.GenerateAPIKey))
     srv.mux.Handle("POST /api/forgot-password", srv.handle(srv.ForgotPassword))
     srv.mux.Handle("POST /api/reset-password", srv.handle(srv.ResetPassword))
+    srv.mux.Handle("POST /api/report", srv.handle(srv.UserOnly, srv.ReportBug))
     srv.mux.Handle("POST /api/game", srv.handle(srv.UserOnly, srv.CreateGame))
     srv.mux.Handle("PUT /api/game", srv.handle(srv.UserOnly, srv.UpdateGame))
     srv.mux.Handle("POST /auth/register", srv.handle(srv.Register))
@@ -500,6 +502,42 @@ func (s *Server) ResetPassword(w http.ResponseWriter, r *http.Request) error {
     return nil
 }
 
+func (s *Server) ReportBug(w http.ResponseWriter, r *http.Request) error {
+    type Body struct {
+        Problem string `json:"problem"`
+        Result string `json:"result"`
+        Steps string `json:"steps"`
+    }
+
+    user, _ := s.appcfg.database.GetUser(r.Context(), r.Context().Value("username").(string))
+
+    defer r.Body.Close()
+
+    data, err := decode[Body](r)
+    err = s.appcfg.database.ReportBug(r.Context(), database.ReportBugParams{
+        Problem: data.Problem,
+        Result: data.Result,
+        Steps: data.Steps,
+        Uid: user.ID,
+    })
+
+    if err != nil {
+        s.log.Error("reporting bug", "err", err)
+    }
+
+    e := Email{
+        From: s.appcfg.config.Email.From,
+        To: s.appcfg.config.App.Admin,
+        Subject: "The Common Game - Bug Report",
+        Body: fmt.Sprintf("Bug Report from: %s - %s\n\nProblem:\n%s\n\nExpected Results:\n%s\n\nReproduction Steps:\n%s\n\n", user.Username, user.Email, data.Problem, data.Result, data.Steps),
+    }
+
+    s.appcfg.emails <- e
+
+    encode(w, http.StatusOK, SuccessResp{ Success: true })
+    return nil
+}
+
 func (s *Server) ForgotPassword(w http.ResponseWriter, r *http.Request) error {
     resettimer := time.Now().Add(time.Minute * 15).Unix()
     resetbytes := make([]byte, 32)
@@ -564,6 +602,11 @@ func (s *Server) getLoginPage(w http.ResponseWriter, r *http.Request) error {
 
 func (s *Server) getGamePage(w http.ResponseWriter, r *http.Request) error {
     s.getFile(w, "static-app/entrypoints/game.html")
+    return nil
+}
+
+func (s *Server) getReportPage(w http.ResponseWriter, r *http.Request) error {
+    s.getFile(w, "static-app/entrypoints/report.html")
     return nil
 }
 
