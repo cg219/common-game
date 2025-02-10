@@ -24,7 +24,7 @@ var Migrations embed.FS
 func main() {
     var cfg *app.Config
     done := make(chan struct{})
-    secretsPath := os.Getenv("APP_CREDTENTIALS")
+    secretsPath := os.Getenv("APP_CREDENTIALS")
     _, err := os.Stat(secretsPath)
     cwd, _ := os.Getwd();
 
@@ -47,6 +47,7 @@ func main() {
         cfg = app.NewConfigFromSecrets(data, Frontend, Migrations)
     }
 
+    log.Println(cfg.R2.Key)
     if cfg.R2.Key != "" {
         s3cfg, err := config.LoadDefaultConfig(context.Background(), config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.R2.Key, cfg.R2.Secret, "")), config.WithRegion("auto"))
 

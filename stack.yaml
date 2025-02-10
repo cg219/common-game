@@ -10,19 +10,19 @@ services:
     ports:
       - 3007:8080
     volumes:
-      - thecommongame-data-box:/app/data
+      - thecommongame-data:/app/data
     secrets:
       - cgsecrets
   backup:
     image: ghcr.io/cg219/common-game:main
     environment:
       - APP_DATA=data/database.db
-      - NP_CREDTENTIALS=/run/secrets/cgsecrets
+      - APP_CREDENTIALS=/run/secrets/cgsecrets
       - APP_EXIT_BACKUP=1
       - PORT=8081
     command: ["/bin/sh", "-c", "while ! wget --spider -q http://thecommongame_app:8080/health; do sleep 2; done; /app/backup"]
     volumes:
-      - thecommongame-data-box:/app/data
+      - thecommongame-data:/app/data
     secrets:
       - cgsecrets
     deploy:
@@ -34,5 +34,5 @@ secrets:
     file: secrets.yaml
 
 volumes:
-  thecommongame-data-box:
+  thecommongame-data:
 

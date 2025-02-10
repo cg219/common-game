@@ -97,7 +97,7 @@ func Run(cfg *Config, client *s3.Client) {
 func main() {
     var cfg *Config
 
-    secretsPath := os.Getenv("NP_CREDTENTIALS")
+    secretsPath := os.Getenv("APP_CREDENTIALS")
     _, err := os.Stat(secretsPath)
 
     if err != nil {
