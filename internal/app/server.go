@@ -904,6 +904,7 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) error {
 
     body, err := decode[LoginBody](r)
     if err != nil {
+        s.log.Info("decoding loginbody", "body", body, "err", err)
         return err
     }
 
