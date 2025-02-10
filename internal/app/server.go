@@ -679,6 +679,8 @@ func (s *Server) login(ctx context.Context, username string, password string) bo
         return false
     }
 
+    s.log.Info("existing user", "user", existingUser)
+
     if existingUser.Username == "" {
         return false 
     }
