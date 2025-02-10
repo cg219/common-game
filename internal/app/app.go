@@ -20,9 +20,7 @@ type Config struct {
     App struct {
         Url string `yaml:"url"`
         Admin string `yaml:"email"`
-    } `yaml:"app"`
-    Data struct {
-        Path string `yaml:"data"`
+        Data string `yaml:"data"`
     } `yaml:"app"`
     Email struct {
         User string `yaml:"user"`
@@ -49,7 +47,7 @@ type AppCfg struct {
 
 func NewConfig(frontend embed.FS, migrations embed.FS) *Config {
     cfg := &Config{}
-    cfg.Data.Path = os.Getenv("APP_DATA")
+    cfg.App.Data = os.Getenv("APP_DATA")
     cfg.App.Url = os.Getenv("APP_URL")
     cfg.App.Admin = os.Getenv("APP_ADMIN_EMAIL")
     cfg.Email.User = os.Getenv("SMTP_USER")
@@ -86,7 +84,7 @@ func Run(config Config) error {
     }
 
     cwd, _ := os.Getwd();
-    db, err := sql.Open("sqlite", filepath.Join(cwd, config.Data.Path))
+    db, err := sql.Open("sqlite", filepath.Join(cwd, config.App.Data))
     if err != nil {
         return err
     }

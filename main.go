@@ -67,7 +67,7 @@ func main() {
             log.Fatal(err)
         }
 
-        dbfile, err := os.Create(filepath.Join(cwd, cfg.Data.Path))
+        dbfile, err := os.Create(filepath.Join(cwd, cfg.App.Data))
         if err != nil {
             log.Fatal(err)
         }
