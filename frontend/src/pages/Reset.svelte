@@ -48,7 +48,7 @@
     }
 </script>
 
-<Layout title="thecommongame" subtitle="appname">
+<Layout title="The Common Game" subtitle="Reset you password">
     <h1>Reset Password</h1>
     {#if valid}
         <form class="container" id="reset" onsubmit={resetPassword} method="POST" action="/api/reset-password">

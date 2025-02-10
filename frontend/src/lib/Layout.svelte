@@ -46,6 +46,9 @@ async function logout(evt: Event) {
                     {/if} 
                 {/each}
                 <li>
+                    <a href="/account">Account</a>
+                </li>
+                <li>
                     <a href="/report">Report a Bug</a>
                 </li>
                 <li>

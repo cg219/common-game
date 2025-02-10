@@ -146,6 +146,7 @@ func addRoutes(srv *Server) {
     srv.mux.Handle("GET /", srv.handle(srv.RedirectAuthenticated("/game", true), srv.getLoginPage))
     srv.mux.Handle("GET /game", srv.handle(srv.RedirectAuthenticated("/", false), srv.getGamePage))
     srv.mux.Handle("GET /report", srv.handle(srv.RedirectAuthenticated("/", false), srv.getReportPage))
+    srv.mux.Handle("GET /account", srv.handle(srv.RedirectAuthenticated("/", false), srv.getAccountPage))
     srv.mux.Handle("GET /assets/", http.StripPrefix("/assets", http.FileServer(http.FS(static))))
     srv.mux.Handle("POST /api/generate-apikey/{name}", srv.handle(srv.UserOnly, srv.GenerateAPIKey))
     srv.mux.Handle("POST /api/forgot-password", srv.handle(srv.ForgotPassword))
@@ -563,7 +564,7 @@ func (s *Server) ForgotPassword(w http.ResponseWriter, r *http.Request) error {
 
     user, err := s.appcfg.database.GetUser(r.Context(), username)
     if err != nil {
-        s.log.Error("retreiving user for reset pass", "err", err)
+        s.log.Error("retreiving user for reset pass", "username", username, "err", err)
     }
 
     e := Email{
@@ -588,6 +589,11 @@ func (s *Server) getFile(w http.ResponseWriter, filepath string) {
 
     w.Header().Add("Content-Type", "text/html")
     w.Write(data)
+}
+
+func (s *Server) getAccountPage(w http.ResponseWriter, r *http.Request) error {
+    s.getFile(w, "static-app/entrypoints/settings.html")
+    return nil
 }
 
 func (s *Server) getResetPage(w http.ResponseWriter, r *http.Request) error {
@@ -916,7 +922,7 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) error {
 
     s.setTokens(w, r, body.Username)
     encode(w, http.StatusOK, SuccessResp{ Success: true })
-    s.log.Info("Login", "body", body)
+    s.log.Info("Login", "username", body.Username)
     return nil
 }
 
