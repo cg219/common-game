@@ -30,6 +30,12 @@ type Config struct {
         From string `yaml:"from"`
         Key string `yaml:"key"`
     } `yaml:"email"`
+    R2 struct {
+        Key string `yaml:"key"`
+        Secret string `yaml:"secret"`
+        Token string `yaml:"token"`
+        Url string `yaml:"url"`
+    } `yaml:"r2"`
     Frontend embed.FS
     Migrations embed.FS
 }
@@ -50,6 +56,10 @@ func NewConfig(frontend embed.FS, migrations embed.FS) *Config {
     cfg.Email.From = os.Getenv("SMTP_FROM")
     cfg.Email.Host = os.Getenv("SMTP_HOST")
     cfg.Email.Key = os.Getenv("SMTP_KEY")
+    cfg.R2.Key = os.Getenv("R2_KEY")
+    cfg.R2.Secret = os.Getenv("R2_SECRET")
+    cfg.R2.Token = os.Getenv("R2_TOKEN")
+    cfg.R2.Url = os.Getenv("R2_URL")
     cfg.Frontend = frontend
     cfg.Migrations = migrations
 

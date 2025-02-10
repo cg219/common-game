@@ -1,10 +1,17 @@
 package main
 
 import (
+	"context"
 	"embed"
+	"io"
 	"log"
 	"os"
+	"path/filepath"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cg219/common-game/internal/app"
 )
 
@@ -19,6 +26,7 @@ func main() {
     done := make(chan struct{})
     secretsPath := os.Getenv("APP_CREDTENTIALS")
     _, err := os.Stat(secretsPath)
+    cwd, _ := os.Getwd();
 
     if err != nil {
         if os.IsNotExist(err) {
@@ -38,6 +46,49 @@ func main() {
 
         cfg = app.NewConfigFromSecrets(data, Frontend, Migrations)
     }
+
+    if cfg.R2.Key != "" {
+        s3cfg, err := config.LoadDefaultConfig(context.Background(), config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.R2.Key, cfg.R2.Secret, "")), config.WithRegion("auto"))
+
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        client := s3.NewFromConfig(s3cfg, func(o *s3.Options) {
+            o.BaseEndpoint = aws.String(cfg.R2.Url)
+        })
+
+        res, err := client.GetObject(context.Background(), &s3.GetObjectInput{
+            Bucket: aws.String("commongame"),
+            Key: aws.String("database.db"),
+        })
+
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        dbfile, err := os.Create(filepath.Join(cwd, cfg.Data.Path))
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        data, err := io.ReadAll(res.Body)
+        if err != nil {
+            res.Body.Close()
+            log.Fatal(err)
+        }
+
+        res.Body.Close()
+
+        _, err = dbfile.Write(data)
+        if err != nil {
+            dbfile.Close()
+            log.Fatal(err)
+        }
+
+        dbfile.Close()
+    }
+
 
     go func() {
         if err := app.Run(*cfg); err != nil {
