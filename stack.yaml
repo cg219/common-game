@@ -8,7 +8,7 @@ services:
       - APP=/run/secrets/npsecrets
       - PORT=8080
     ports:
-      - 8080:8080
+      - 3007:8080
     volumes:
       - thecommongame-data:/app/data
     secrets:
