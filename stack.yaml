@@ -5,7 +5,7 @@ services:
     image: ghcr.io/cg219/common-game:main
     environment:
       - APP_DATA=data/database.db
-      - APP=/run/secrets/cgsecrets
+      - APP_CREDENTIALS=/run/secrets/cgsecrets
       - PORT=8080
     ports:
       - 3007:8080
