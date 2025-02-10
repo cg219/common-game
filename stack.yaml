@@ -5,32 +5,32 @@ services:
     image: ghcr.io/cg219/common-game:main
     environment:
       - APP_DATA=data/database.db
-      - APP=/run/secrets/npsecrets
+      - APP=/run/secrets/cgsecrets
       - PORT=8080
     ports:
       - 3007:8080
     volumes:
       - thecommongame-data:/app/data
     secrets:
-      - npsecrets
+      - cgsecrets
   backup:
     image: ghcr.io/cg219/common-game:main
     environment:
       - APP_DATA=data/database.db
-      - NP_CREDTENTIALS=/run/secrets/npsecrets
+      - NP_CREDTENTIALS=/run/secrets/cgsecrets
       - APP_EXIT_BACKUP=1
       - PORT=8081
     command: ["/bin/sh", "-c", "while ! wget --spider -q http://thecommongame_app:8080/health; do sleep 2; done; /app/backup"]
     volumes:
       - thecommongame-data:/app/data
     secrets:
-      - npsecrets
+      - cgsecrets
     deploy:
       restart_policy:
         condition: on-failure
 
 secrets:
-  npsecrets:
+  cgsecrets:
     file: secrets.yaml
 
 volumes:
