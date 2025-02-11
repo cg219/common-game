@@ -41,5 +41,5 @@ WORKDIR /app
 COPY --from=build /build/thecommongame /app
 COPY --from=build /build/backup /app
 EXPOSE 8080
-ENTRYPOINT [ "/app/thecommongame" ]
+CMD [ "/app/thecommongame" ]
 
