@@ -129,7 +129,7 @@ func main() {
         o.BaseEndpoint = aws.String(cfg.R2.Url)
     })
 
-    ticker := time.NewTicker(time.Hour * 1)
+    ticker := time.NewTicker(time.Minute * 5)
     ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
     defer stop()
 
