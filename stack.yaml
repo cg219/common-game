@@ -11,7 +11,7 @@ services:
     ports:
       - 3007:8080
     volumes:
-      - thecommongame-data:/app/data
+      - commongame-data:/app/data
     secrets:
       - cgsecrets
     healthcheck:
@@ -30,9 +30,9 @@ services:
       - APP_CREDENTIALS=/run/secrets/cgsecrets
       - APP_EXIT_BACKUP=1
       - PORT=8081
-    command: ["/app/backup"]
+    command: ["/bin/sh", "-c", "while ! wget --spider -q http://commongame_app:8080/health; do sleep 10; done; /app/backup"]
     volumes:
-      - thecommongame-data:/app/data
+      - commongame-data:/app/data
     secrets:
       - cgsecrets
     deploy:
@@ -44,4 +44,4 @@ secrets:
     file: secrets.yaml
 
 volumes:
-  thecommongame-data:
+  commongame-data:
