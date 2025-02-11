@@ -31,7 +31,7 @@ async function logout(evt: Event) {
         <ul>
             <li>
                 <hgroup>
-                    <h1>{title}</h1>
+                    <h1><a href="/">{title}</a></h1>
                     <p>{subtitle}</p>
                 </hgroup>
             </li>
