@@ -21,8 +21,8 @@ import (
 )
 
 type Config struct {
-    Data struct {
-        Path string `yaml:"data"`
+    App struct {
+        Data string `yaml:"data"`
     } `yaml:"app"`
     R2 struct {
         Key string `yaml:"key"`
@@ -39,7 +39,7 @@ func NewConfig() *Config {
     cfg.R2.Secret = os.Getenv("R2_SECRET")
     cfg.R2.Token = os.Getenv("R2_TOKEN")
     cfg.R2.Url = os.Getenv("R2_URL")
-    cfg.Data.Path = os.Getenv("APP_DATA")
+    cfg.App.Data = os.Getenv("APP_DATA")
 
     return cfg
 }
@@ -56,7 +56,7 @@ func NewConfigFromSecrets(data []byte) *Config {
 
 func Run(cfg *Config, client *s3.Client) {
     cwd, _ := os.Getwd();
-    dbfile, err := os.Open(filepath.Join(cwd, cfg.Data.Path))
+    dbfile, err := os.Open(filepath.Join(cwd, cfg.App.Data))
 
     if err != nil {
         log.Fatal(err)
