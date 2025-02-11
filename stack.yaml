@@ -30,7 +30,7 @@ services:
       - APP_CREDENTIALS=/run/secrets/cgsecrets
       - APP_EXIT_BACKUP=1
       - PORT=8081
-    command: ["/bin/sh", "-c", "while ! wget --spider -q http://thecommongame_app:8080/health; do sleep 10; done; /app/backup"]
+    command: ["/app/backup"]
     volumes:
       - thecommongame-data:/app/data
     secrets:
