@@ -6,6 +6,7 @@ services:
     environment:
       - APP_DATA=data/database.db
       - APP_CREDENTIALS=/run/secrets/cgsecrets
+      - APP_EXIT_BACKUP=1
       - PORT=8080
     ports:
       - 3007:8080
@@ -44,4 +45,3 @@ secrets:
 
 volumes:
   thecommongame-data:
-

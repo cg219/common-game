@@ -133,6 +133,8 @@ func main() {
     ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
     defer stop()
 
+    log.Println("starting backup daemon")
+
     prog:
     for {
         select {
@@ -148,7 +150,7 @@ func main() {
         Run(cfg, client)
     }
 
-    log.Println("Exiting nowplaying safely")
+    log.Println("exiting backup daemon")
 }
 
 

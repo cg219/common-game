@@ -9,10 +9,10 @@ COPY go.* ./
 RUN go mod download
 COPY . .
 RUN cd frontend && /root/.deno/bin/deno install && /root/.deno/bin/deno task build && cd ..
-RUN go build -o /build/backup cmd/backup/main.go
-RUN chmod +x /build/backup
 RUN go build -o /build/thecommongame main.go
 RUN chmod +x /build/thecommongame
+RUN go build -o /build/backup cmd/backup/main.go
+RUN chmod +x /build/backup
 
 FROM golang:1.23 AS dev
 ENV CGO_ENABLED=0
