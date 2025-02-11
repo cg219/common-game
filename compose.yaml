@@ -27,3 +27,29 @@ services:
             - ./data
     volumes:
       - $PWD/data:/app/data
+  # backup:
+  #   build:
+  #     context: .
+  #     target: backup
+  #   working_dir: /app
+  #   command: /usr/local/bin/backup
+  #   environment:
+  #     - PORT=8081
+  #   env_file:
+  #     - .env
+  #   develop:
+  #     watch:
+  #       - action: rebuild
+  #         path: ./cmd/backup/main.go
+  #       - action: rebuild
+  #         path: ./go.mod
+  #       - action: rebuild
+  #         path: ./go.sum
+  #       # - action: sync+restart
+  #       #   path: .
+  #       #   target: /app
+  #       #   ignore:
+  #       #     - ./frontend/node_modules
+  #       #     - ./data
+  #   volumes:
+  #     - $PWD/data:/app/data

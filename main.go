@@ -47,7 +47,6 @@ func main() {
         cfg = app.NewConfigFromSecrets(data, Frontend, Migrations)
     }
 
-    log.Println(cfg.R2.Key)
     if cfg.R2.Key != "" {
         s3cfg, err := config.LoadDefaultConfig(context.Background(), config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.R2.Key, cfg.R2.Secret, "")), config.WithRegion("auto"))
 
@@ -89,7 +88,6 @@ func main() {
 
         dbfile.Close()
     }
-
 
     go func() {
         if err := app.Run(*cfg); err != nil {
