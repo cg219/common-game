@@ -63,4 +63,14 @@ async function logout(evt: Event) {
     </section>
 </main>
 
+<style>
+    @media (max-width: 600px) {
+        section {
+            overflow: hidden;
+        }
 
+        nav {
+            flex-direction: column;
+        }
+    }
+</style>

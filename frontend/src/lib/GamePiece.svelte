@@ -33,7 +33,14 @@
 <style>
     button {
         width: 100%;
-        height: 100%;
+        aspect-ratio: 1;
+        font-size: .8rem;
+        white-space: nowrap;
+        overflow: hidden;
+
+        @media (max-width: 600px) {
+            font-size: 70%;
+        }
 
         &.selected {
             background-color: #CFCFCF;

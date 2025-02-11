@@ -1,15 +1,18 @@
 .game {
     width: 600px;
-    height: 600px;
+    aspect-ratio: 1;
+
+    @media (max-width: 600px) {
+        width: 100%;
+    }
 
     h3 {
         /* display: none; */
     }
 
-
     .game-piece {
         width: 100%;
-        height: 100%;
+        aspect-ratio: 1;
 
         &.selected {
             background-color: #CFCFCF;
