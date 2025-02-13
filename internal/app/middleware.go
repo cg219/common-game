@@ -21,6 +21,12 @@ func (s *Server) handle(h ...CandlerFunc) http.Handler {
                     }
                     return
 
+                case MISSING_PARAMS_ERROR:
+                    if err := encode(w, 400, ResponseError{ Success: false, Messaage: "Missing Paramters", Code: BAD_REQUEST }); err != nil {
+                        return500(w)
+                    }
+                    return
+
                 case AUTH_ERROR:
                     if err := encode(w, 404, ResponseError{ Success: false, Messaage: "Username/Password Incorrect", Code: AUTH_FAIL }); err != nil {
                         return500(w)

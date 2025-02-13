@@ -80,6 +80,7 @@ const (
     INTERNAL_ERROR = "Internal Server Error"
     AUTH_ERROR = "Authentication Error"
     USERNAME_EXISTS_ERROR = "Username Exists Error"
+    MISSING_PARAMS_ERROR = "Missing Parameters Error"
     GOTO_NEXT_HANDLER_ERROR = "Redirect Error"
     REDIRECT_ERROR = "Intentional Redirect Error"
 )
@@ -88,6 +89,7 @@ const (
     AUTH_FAIL
     AUTH_NOT_ALLOWED
     INTERNAL_SERVER_ERROR
+    BAD_REQUEST
 )
 
 func NewServer(cfg *AppCfg) *Server {
@@ -822,6 +824,10 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) error {
     body, err := decode[RegisterBody](r)
     if err != nil {
         return err
+    }
+
+    if body.Username == "" || body.Email == "" || body.Password == "" {
+       return fmt.Errorf(MISSING_PARAMS_ERROR)
     }
 
     existingUser, err := s.appcfg.database.GetUser(r.Context(), body.Username)
