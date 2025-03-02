@@ -26,13 +26,13 @@ async function logout(evt: Event) {
 
 </script>
 
-<main class="container">
-    <nav role="group">
+<main class="mx-auto w-full font-[Lato]">
+    <nav class="flex-col w-9/10 flex justify-between mx-auto my-10">
         <ul>
             <li>
                 <hgroup>
-                    <h1><a href="/">{title}</a></h1>
-                    <p>{subtitle}</p>
+                    <h1 class="text-4xl text-teal-800 font-[Bowlby_One_SC] font-normal"><a class="" href="/">{title}</a></h1>
+                    <p class="text-md text-slate-400">{subtitle}</p>
                 </hgroup>
             </li>
         </ul>
@@ -58,19 +58,21 @@ async function logout(evt: Event) {
         {/if}
     </nav>
 
-    <section>
+    <section class="overflow-hidden w-9/10 m-auto mt-10">
         {@render children()}
     </section>
 </main>
 
 <style>
-    @media (max-width: 600px) {
-        section {
-            overflow: hidden;
-        }
+    @import 'tailwindcss';
 
-        nav {
-            flex-direction: column;
-        }
-    }
+    /* @media (max-width: 600px) { */
+    /*     section { */
+    /*         overflow: hidden; */
+    /*     } */
+    /**/
+    /*     nav { */
+    /*         flex-direction: column; */
+    /*     } */
+    /* } */
 </style>

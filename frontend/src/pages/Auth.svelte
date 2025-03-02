@@ -113,37 +113,44 @@
         })
     })
 
+    const cardStyle = "rounded-lg border-zinc-700/50 border-1 border-solid w-xl mx-auto bg-zinc-900 text-zinc-100 overflow-auto"
+    const inputStyle = "bg-zinc-800 p-5 text-md my-2 border-zinc-600/30 border-1 border-solid focus:border-teal-800/80 rounded-lg outline-none";
+    const buttonStyle = "bg-teal-800 rounded-lg p-5 my-2 cursor-pointer";
+    const headerStyle = "text-lg mb-5 px-10 bg-zinc-800 py-5"
+    const formStyle = "flex flex-col justify-even w-full px-10"
+    const footerStyle = "w-full px-10 py-4 mt-5 bg-zinc-800"
+    const linkStyle = "underline text-slate-400 hover:decoration-teal-500 hover:text-slate-300 transition-colors duration-200"
+
 </script>
 
 <Layout title="The Common Game" subtitle="">
-
-    <article id="login" style:display={showlogin ? "block" : "none"}>
-        <header>Login</header>
-        <form onsubmit={login} class="container" id="login" method="POST" action="/api/login">
-            <input type="text" name="username" aria-invalid={lusererr} onfocus={() => clearValidation("luser")} placeholder="Username" bind:value={lusername} />
-            <input type="password" name="password" aria-invalid={lpasserr} onfocus={() => clearValidation("lpass")} placeholder="Password" bind:value={lpassword} />
-            <button type="submit">Login</button>
+    <article id="login" style:display={showlogin ? "block" : "none"} class={cardStyle}>
+        <header class={headerStyle}>Login</header>
+        <form onsubmit={login} class={formStyle} id="login" method="POST" action="/api/login">
+            <input type="text" name="username" aria-invalid={lusererr} onfocus={() => clearValidation("luser")} placeholder="Username" bind:value={lusername} class={inputStyle} />
+            <input type="password" name="password" aria-invalid={lpasserr} onfocus={() => clearValidation("lpass")} placeholder="Password" bind:value={lpassword} class={inputStyle} />
+            <button type="submit" class={buttonStyle}>Login</button>
         </form>
-        <footer>
-            or <a class="secondary" href="#register">sign up here</a>
+        <footer class={footerStyle}>
+            or <a class={linkStyle} href="#register">sign up here</a>
         </footer>
     </article>
 
-    <article id="register" style:display={showlogin ? "none" : "block"}>
-        <header>Sign Up</header>
-        <form onsubmit={register} class="container" id="register" method="POST" action="/api/register">
-            <input type="text" name="email" aria-invalid={remailerr} onfocus={() => clearValidation("remail")}  placeholder="Email" bind:value={email} />
-            <input type="text" name="username" aria-describedby="username-invalid" aria-invalid={rusererr} onfocus={() => clearValidation("ruser")}  placeholder="Username" bind:value={rusername} />
+    <article id="register" style:display={showlogin ? "none" : "block"} class={cardStyle}>
+        <header class={headerStyle}>Sign Up</header>
+        <form onsubmit={register} class={formStyle} id="register" method="POST" action="/api/register">
+            <input type="text" class={inputStyle} name="email" aria-invalid={remailerr} onfocus={() => clearValidation("remail")}  placeholder="Email" bind:value={email} />
+            <input type="text" class={inputStyle} name="username" aria-describedby="username-invalid" aria-invalid={rusererr} onfocus={() => clearValidation("ruser")}  placeholder="Username" bind:value={rusername} />
             <small id="username-invalid">
                 {#if rusername.trim().length > 0 && rusererr == "true"}
                    Username Taken. Choose another one. 
                 {/if} 
             </small>
-            <input type="password" name="password" aria-invalid={rpasserr} onfocus={() => clearValidation("rpass")}  placeholder="Password" bind:value={rpassword} />
-            <button type="submit">Register</button>
+            <input type="password" class={inputStyle} name="password" aria-invalid={rpasserr} onfocus={() => clearValidation("rpass")}  placeholder="Password" bind:value={rpassword} />
+            <button type="submit" class={buttonStyle}>Register</button>
         </form>
-        <footer>
-            or <a class="secondary" href="#login">login here</a>
+        <footer class={footerStyle}>
+            or <a class={linkStyle} href="#login">login here</a>
         </footer>
     </article>
     <dialog open={showconf}>
