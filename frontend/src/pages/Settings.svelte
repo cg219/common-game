@@ -1,5 +1,6 @@
 <script lang="ts">
     import Layout from "../lib/Layout.svelte";
+    import { formStyle, setStyle, inputStyle, buttonStyle, disabledStyle } from "../lib/styles";
 
     let apikey = $state("")
     let apiname = $state("")
@@ -27,17 +28,17 @@
 </script>
 
 <Layout title="The Common Game" subtitle="My Settings" links={[]}>
-    <form>
-        <fieldset>
+    <form class={formStyle}>
+        <fieldset class={setStyle}>
             <label for="reset-pass">Reset Password</label>
-            <input type="text" name="username" placeholder="Username" bind:value={username} />
-            <input type="button" onclick={resetPassword} name="reset-pass" value="Reset Password"/>
+            <input type="text" class={inputStyle} name="username" placeholder="Username" bind:value={username} />
+            <input type="button" class={buttonStyle} onclick={resetPassword} name="reset-pass" value="Reset Password"/>
         </fieldset>
-        <fieldset>
+        <fieldset class={setStyle}>
             <label for="new-key">New API Key</label>
-            <input type="text" placeholder="Name" bind:value={apiname}>
-            <input type="button" onclick={generateKey} name="api-generate" value="Generate">
-            <input type="text" name="new-key" disabled value={apikey}>
+            <input type="text" class={inputStyle} placeholder="Name" bind:value={apiname}>
+            <input type="button" class={buttonStyle} onclick={generateKey} name="api-generate" value="Generate">
+            <input type="text" class={apikey == "" ? inputStyle : disabledStyle} placeholder="Key" name="new-key" disabled value={apikey}>
         </fieldset>
     </form>
 </Layout>

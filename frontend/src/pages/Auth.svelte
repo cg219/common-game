@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import Layout from "../lib/Layout.svelte";
+    import { cardStyle, inputStyle, buttonStyle, headerStyle, formStyle, footerStyle, linkStyle } from "../lib/styles";
 
     let rusername = $state("")
     let rpassword = $state("")
@@ -112,15 +113,6 @@
             toggleLogin(window.location.hash)
         })
     })
-
-    const cardStyle = "rounded-lg border-zinc-700/50 border-1 border-solid w-xl mx-auto bg-zinc-900 text-zinc-100 overflow-auto"
-    const inputStyle = "bg-zinc-800 p-5 text-md my-2 border-zinc-600/30 border-1 border-solid focus:border-teal-800/80 rounded-lg outline-none";
-    const buttonStyle = "bg-teal-800 rounded-lg p-5 my-2 cursor-pointer";
-    const headerStyle = "text-lg mb-5 px-10 bg-zinc-800 py-5"
-    const formStyle = "flex flex-col justify-even w-full px-10"
-    const footerStyle = "w-full px-10 py-4 mt-5 bg-zinc-800"
-    const linkStyle = "underline text-slate-400 hover:decoration-teal-500 hover:text-slate-300 transition-colors duration-200"
-
 </script>
 
 <Layout title="The Common Game" subtitle="">
