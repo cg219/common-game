@@ -147,8 +147,8 @@
             or <a class={linkStyle} href="#login">login here</a>
         </footer>
     </article>
-    <dialog open={showconf}>
-        <article>
+    <dialog open={showconf} class="mx-auto w-9/10 sm:w-lg bg-slate-100 my-10 rounded-lg">
+        <article class="p-5 text-slate-800 text-xs sm:text-base">
             Check your email to validate your account and login
         </article>
     </dialog>

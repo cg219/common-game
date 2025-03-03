@@ -61,7 +61,9 @@
             </fieldset>
         </form>
     {:else}
-        <p>Invalid Reset Link</p>
-        <a class={linkStyle} href="/">Go Back Home and Login</a>
+        <div class="mx-auto text-center">
+            <p class="text-zinc-100 text-lg">Invalid Reset Link</p>
+            <a class={linkStyle} href="/">Go Back Home and Login</a>
+        </div>
     {/if}
 </Layout>
