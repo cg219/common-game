@@ -1,4 +1,4 @@
-name: Create and publish a Docker image
+name: Continuous Deployment
 
 on:
   push:
@@ -10,6 +10,7 @@ env:
 
 jobs:
   build_image:
+    name: Build Image
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -45,4 +46,20 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
-
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup SSH
+        uses: appleboy/ssh-action@v1.2.1
+        env:
+          SECRETS_FILE: ${{ secrets.SECRETS }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          envs: SECRETS_FILE
+          script_path: deploy.sh
