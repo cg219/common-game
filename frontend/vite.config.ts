@@ -1,9 +1,10 @@
 import { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import { resolve } from "@std/path/resolve"
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [svelte()],
+  plugins: [svelte(), tailwindcss()],
     build: {
         rollupOptions: {
             input: {

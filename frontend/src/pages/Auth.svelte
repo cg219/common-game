@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import Layout from "../lib/Layout.svelte";
+    import { cardStyle, inputStyle, buttonStyle, headerStyle, formStyle, footerStyle, linkStyle } from "../lib/styles";
 
     let rusername = $state("")
     let rpassword = $state("")
@@ -113,41 +114,41 @@
         })
     })
 
+    const localformStyle = `${formStyle} w-9/10! mx-auto!`
 </script>
 
 <Layout title="The Common Game" subtitle="">
-
-    <article id="login" style:display={showlogin ? "block" : "none"}>
-        <header>Login</header>
-        <form onsubmit={login} class="container" id="login" method="POST" action="/api/login">
-            <input type="text" name="username" aria-invalid={lusererr} onfocus={() => clearValidation("luser")} placeholder="Username" bind:value={lusername} />
-            <input type="password" name="password" aria-invalid={lpasserr} onfocus={() => clearValidation("lpass")} placeholder="Password" bind:value={lpassword} />
-            <button type="submit">Login</button>
+    <article id="login" style:display={showlogin ? "block" : "none"} class={cardStyle}>
+        <header class={headerStyle}>Login</header>
+        <form onsubmit={login} class={localformStyle} id="login" method="POST" action="/api/login">
+            <input type="text" name="username" aria-invalid={lusererr} onfocus={() => clearValidation("luser")} placeholder="Username" bind:value={lusername} class={inputStyle} />
+            <input type="password" name="password" aria-invalid={lpasserr} onfocus={() => clearValidation("lpass")} placeholder="Password" bind:value={lpassword} class={inputStyle} />
+            <button type="submit" class={buttonStyle}>Login</button>
         </form>
-        <footer>
-            or <a class="secondary" href="#register">sign up here</a>
+        <footer class={footerStyle}>
+            or <a class={linkStyle} href="#register">sign up here</a>
         </footer>
     </article>
 
-    <article id="register" style:display={showlogin ? "none" : "block"}>
-        <header>Sign Up</header>
-        <form onsubmit={register} class="container" id="register" method="POST" action="/api/register">
-            <input type="text" name="email" aria-invalid={remailerr} onfocus={() => clearValidation("remail")}  placeholder="Email" bind:value={email} />
-            <input type="text" name="username" aria-describedby="username-invalid" aria-invalid={rusererr} onfocus={() => clearValidation("ruser")}  placeholder="Username" bind:value={rusername} />
+    <article id="register" style:display={showlogin ? "none" : "block"} class={cardStyle}>
+        <header class={headerStyle}>Sign Up</header>
+        <form onsubmit={register} class={localformStyle} id="register" method="POST" action="/api/register">
+            <input type="text" class={inputStyle} name="email" aria-invalid={remailerr} onfocus={() => clearValidation("remail")}  placeholder="Email" bind:value={email} />
+            <input type="text" class={inputStyle} name="username" aria-describedby="username-invalid" aria-invalid={rusererr} onfocus={() => clearValidation("ruser")}  placeholder="Username" bind:value={rusername} />
+            {#if rusername.trim().length > 0 && rusererr == "true"}
             <small id="username-invalid">
-                {#if rusername.trim().length > 0 && rusererr == "true"}
                    Username Taken. Choose another one. 
-                {/if} 
             </small>
-            <input type="password" name="password" aria-invalid={rpasserr} onfocus={() => clearValidation("rpass")}  placeholder="Password" bind:value={rpassword} />
-            <button type="submit">Register</button>
+            {/if} 
+            <input type="password" class={inputStyle} name="password" aria-invalid={rpasserr} onfocus={() => clearValidation("rpass")}  placeholder="Password" bind:value={rpassword} />
+            <button type="submit" class={buttonStyle}>Register</button>
         </form>
-        <footer>
-            or <a class="secondary" href="#login">login here</a>
+        <footer class={footerStyle}>
+            or <a class={linkStyle} href="#login">login here</a>
         </footer>
     </article>
-    <dialog open={showconf}>
-        <article>
+    <dialog open={showconf} class="mx-auto w-9/10 sm:w-lg bg-slate-100 my-10 rounded-lg">
+        <article class="p-5 text-slate-800 text-xs sm:text-base">
             Check your email to validate your account and login
         </article>
     </dialog>

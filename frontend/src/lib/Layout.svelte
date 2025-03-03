@@ -24,53 +24,47 @@ async function logout(evt: Event) {
     if (data.success) location.pathname = "/"
 }
 
+const navlinkStyle = "text-zinc-200 text-md no-underline hover:underline hover:decoration-teal-500";
+const selectedlinkStyle = `${navlinkStyle} text-teal-500`
 </script>
 
-<main class="container">
-    <nav role="group">
+<main class="mx-auto w-full font-[Lato]">
+    <nav class="flex flex-col sm:flex-row w-9/10 gap-10 justify-between mx-auto my-10">
         <ul>
             <li>
                 <hgroup>
-                    <h1><a href="/">{title}</a></h1>
-                    <p>{subtitle}</p>
+                    <h1 class="text-4xl text-teal-800 hover:text-teal-700 transition-colors duration-200 font-[Bowlby_One_SC] font-normal"><a class="" href="/">{title}</a></h1>
+                    <p class="text-sm sm:text-base text-slate-400">{subtitle}</p>
                 </hgroup>
             </li>
         </ul>
         {#if links}
-            <ul>
+            <ul class="flex flex-row gap-5 sm:gap-8 justify-start sm:justify-evenly">
                 {#each links as { current, url, name }}
                     {#if current}
-                        <li><a href="{url}" aria-current="page">{name}</a></li>
+                        <li class={selectedlinkStyle}><a href="{url}" aria-current="page">{name}</a></li>
                     {:else}
-                        <li><a class="contrast" href="{url}">{name}</a></li>
+                        <li class={navlinkStyle}><a href="{url}">{name}</a></li>
                     {/if} 
                 {/each}
-                <li>
+                <li class={navlinkStyle}>
                     <a href="/account">Account</a>
                 </li>
-                <li>
+                <li class={navlinkStyle}>
                     <a href="/report">Report a Bug</a>
                 </li>
-                <li>
+                <li class={navlinkStyle}>
                     <a onclick={logout} href="#logout" class="contrast">Logout</a>
                 </li>
             </ul>
         {/if}
     </nav>
 
-    <section>
+    <section class="overflow-hidden w-9/10 m-auto mt-10">
         {@render children()}
     </section>
 </main>
 
 <style>
-    @media (max-width: 600px) {
-        section {
-            overflow: hidden;
-        }
-
-        nav {
-            flex-direction: column;
-        }
-    }
+    @import 'tailwindcss';
 </style>
