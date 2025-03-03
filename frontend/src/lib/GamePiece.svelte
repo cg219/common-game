@@ -11,16 +11,17 @@
 
     let { value, correct, wrong, subject, selected = false } : Props = $props()
     let select = getContext("select") as Function
+
+    const pieceStyle = "w-full aspect-square text-sm whitespace-nowrap overflow-hidden rounded-lg transition-colors duration-200 cursor-pointer text-zinc-100";
 </script>
 
 <button
-    class:selected={selected}
-    class:correct={correct}
-    class:wrong={wrong}
-    class:s0={subject == 0}
-    class:s1={subject == 1}
-    class:s2={subject == 2}
-    class:s3={subject == 3}
+    class="{pieceStyle} {selected ? "bg-teal-100! text-slate-800!" : "bg-teal-800 hover:bg-teal-700"}
+    {correct && subject == 0 ? "bg-blue-300! text-slate-800!" : ""}
+    {correct && subject == 1 ? "bg-pink-300! text-slate-800!" : ""}
+    {correct && subject == 2 ? "bg-amber-300! text-slate-800!" : ""}
+    {correct && subject == 3 ? "bg-emerald-300! text-slate-800!" : ""}
+    {wrong ? "bg-red-300!" : ""}"
 
     onclick={() => {
         if (!correct) {
@@ -31,43 +32,5 @@
 </button>
 
 <style>
-    button {
-        width: 100%;
-        aspect-ratio: 1;
-        font-size: .8rem;
-        white-space: nowrap;
-        overflow: hidden;
-
-        @media (max-width: 600px) {
-            font-size: 70%;
-        }
-
-        &.selected {
-            background-color: #CFCFCF;
-        }
-
-        &.wrong {
-            background-color: #EF0038;
-        }
-
-        &.correct.s0 {
-            background-color: lightblue;
-            color: black;
-        }
-
-        &.correct.s1 {
-            background-color: lightpink;
-            color: black;
-        }
-
-        &.correct.s2 {
-            background-color: lightgoldenrodyellow;
-            color: black;
-        }
-
-        &.correct.s3 {
-            background-color: lightsteelblue;
-            color: black;
-        }
-    }
+    @import 'tailwindcss';
 </style>

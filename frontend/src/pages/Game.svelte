@@ -92,6 +92,8 @@
             words[i].wrong = true;
         }) 
     }
+
+    const legendStyle = "relative text-zinc-100 pl-[3rem] before:block before:absolute before:content-[''] before:w-[2rem] before:h-[2rem] before:left-[0] before:top-[0]"
 </script>
 
 <Layout title="The Common Game" subtitle="Match groups of 4 words that have something in common." links={[]}>
@@ -101,7 +103,7 @@
     </form>
     {/if}
 
-    <div class="game">
+    <div class="w-[600px] aspect-square">
         {#if gameStatus == 0}
         <h3>WINNER!!</h3>
         {:else if gameStatus == 1}
@@ -110,20 +112,20 @@
         <h3>Mistakes Left: {turns}</h3>
         {/if}
 
-        <section>
+        <section class="w-full aspect-square grid grid-cols-[repeat(4,_25%)] grid-rows-4">
             {#each words as word}
                 <GamePiece value={word.word} correct={word.correct} wrong={word.wrong} subject={word.subject} selected={word.selected} />
             {/each}
         </section>
 
-        <aside>
-            <ul>
+        <aside class="py-4">
+            <ul class="p-0 flex flex-col gap-4">
                 {#each subjects as subject}
-                    <li
-                        class:s0={subject[0] == 0}
-                        class:s1={subject[0] == 1}
-                        class:s2={subject[0] == 2}
-                        class:s3={subject[0] == 3}
+                    <li class="{legendStyle}
+                        {subject[0] == 0 ? 'before:bg-blue-300' : ''}
+                        {subject[0] == 1 ? 'before:bg-pink-300' : ''}
+                        {subject[0] == 2 ? 'before:bg-amber-300' : ''}
+                        {subject[0] == 3 ? 'before:bg-emerald-300' : ''}"
                     >{subject[1]}</li>
                 {/each}
             </ul>
@@ -132,48 +134,49 @@
 </Layout>
 
 <style>
-    section {
-        width: 100%;
-        aspect-ratio: 1;
-        display: grid;
-        grid-template-columns: repeat(4, 25%);
-        grid-template-rows: repeat(4, 1fr);
-    }
+    /* @import 'tailwindcss'; */
+    /* section { */
+    /*     width: 100%; */
+    /*     aspect-ratio: 1; */
+    /*     display: grid; */
+    /*     grid-template-columns: repeat(4, 25%); */
+    /*     grid-template-rows: repeat(4, 1fr); */
+    /* } */
 
-    aside {
-        ul {
-            padding: 0;
-        }
-
-        li {
-            position: relative;
-            padding-left: 3rem;
-
-            &:before {
-                display: block;
-                position: absolute;
-                content: "";
-                width: 2rem;
-                height: 2rem;
-                left: 0;
-                top: 0;
-            }
-
-            &.s0:before {
-                background-color: lightblue;
-            }
-
-            &.s1:before {
-                background-color: lightpink;
-            }
-
-            &.s2:before {
-                background-color: lightgoldenrodyellow;
-            }
-
-            &.s3:before {
-                background-color: lightsteelblue;
-            }
-        }
-    }
+    /* aside { */
+    /*     ul { */
+    /*         padding: 0; */
+    /*     } */
+    /**/
+    /*     li { */
+    /*         position: relative; */
+    /*         padding-left: 3rem; */
+    /**/
+    /*         &:before { */
+    /*             display: block; */
+    /*             position: absolute; */
+    /*             content: ""; */
+    /*             width: 2rem; */
+    /*             height: 2rem; */
+    /*             left: 0; */
+    /*             top: 0; */
+    /*         } */
+    /**/
+    /*         &.s0:before { */
+    /*             background-color: lightblue; */
+    /*         } */
+    /**/
+    /*         &.s1:before { */
+    /*             background-color: lightpink; */
+    /*         } */
+    /**/
+    /*         &.s2:before { */
+    /*             background-color: lightgoldenrodyellow; */
+    /*         } */
+    /**/
+    /*         &.s3:before { */
+    /*             background-color: lightsteelblue; */
+    /*         } */
+    /*     } */
+    /* } */
 </style>
