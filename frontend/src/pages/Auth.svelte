@@ -113,12 +113,14 @@
             toggleLogin(window.location.hash)
         })
     })
+
+    const localformStyle = `${formStyle} w-9/10! mx-auto!`
 </script>
 
 <Layout title="The Common Game" subtitle="">
     <article id="login" style:display={showlogin ? "block" : "none"} class={cardStyle}>
         <header class={headerStyle}>Login</header>
-        <form onsubmit={login} class={formStyle} id="login" method="POST" action="/api/login">
+        <form onsubmit={login} class={localformStyle} id="login" method="POST" action="/api/login">
             <input type="text" name="username" aria-invalid={lusererr} onfocus={() => clearValidation("luser")} placeholder="Username" bind:value={lusername} class={inputStyle} />
             <input type="password" name="password" aria-invalid={lpasserr} onfocus={() => clearValidation("lpass")} placeholder="Password" bind:value={lpassword} class={inputStyle} />
             <button type="submit" class={buttonStyle}>Login</button>
@@ -130,14 +132,14 @@
 
     <article id="register" style:display={showlogin ? "none" : "block"} class={cardStyle}>
         <header class={headerStyle}>Sign Up</header>
-        <form onsubmit={register} class={formStyle} id="register" method="POST" action="/api/register">
+        <form onsubmit={register} class={localformStyle} id="register" method="POST" action="/api/register">
             <input type="text" class={inputStyle} name="email" aria-invalid={remailerr} onfocus={() => clearValidation("remail")}  placeholder="Email" bind:value={email} />
             <input type="text" class={inputStyle} name="username" aria-describedby="username-invalid" aria-invalid={rusererr} onfocus={() => clearValidation("ruser")}  placeholder="Username" bind:value={rusername} />
+            {#if rusername.trim().length > 0 && rusererr == "true"}
             <small id="username-invalid">
-                {#if rusername.trim().length > 0 && rusererr == "true"}
                    Username Taken. Choose another one. 
-                {/if} 
             </small>
+            {/if} 
             <input type="password" class={inputStyle} name="password" aria-invalid={rpasserr} onfocus={() => clearValidation("rpass")}  placeholder="Password" bind:value={rpassword} />
             <button type="submit" class={buttonStyle}>Register</button>
         </form>

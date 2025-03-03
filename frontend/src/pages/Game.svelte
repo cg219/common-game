@@ -3,6 +3,7 @@
     import Layout from "../lib/Layout.svelte";
     import { onMount, setContext } from "svelte";
     import GamePiece from "../lib/GamePiece.svelte";
+    import { buttonStyle, formStyle } from "../lib/styles";
 
     let words = $state([])
     let gameStatus = $state(2)
@@ -93,23 +94,26 @@
         }) 
     }
 
-    const legendStyle = "relative text-zinc-100 pl-[3rem] before:block before:absolute before:content-[''] before:w-[2rem] before:h-[2rem] before:left-[0] before:top-[0]"
+    const legendStyle = "relative text-zinc-100 text-base sm:text-lg leading-[2rem] pl-[3rem] before:block before:absolute before:content-[''] before:w-[2rem] before:h-[2rem] before:left-[0] before:top-[0]";
+    const headerStyle = "text-xl text-zinc-100 mb-5";
+    const localformStyle = "flex flex-col w-full sm:w-[600px] mx-auto text-slate-100";
+    const localbuttonStyle = `${buttonStyle} hover:bg-teal-700 transition-colors duration-200 mb-4`;
 </script>
 
 <Layout title="The Common Game" subtitle="Match groups of 4 words that have something in common." links={[]}>
     {#if (gameStatus == 0 || gameStatus == 1)}
-    <form onsubmit={getGame} class="container" id="newgame" method="POST" action="/api/game">
-        <button type="submit">Start a New Game</button>
+    <form onsubmit={getGame} class={localformStyle} id="newgame" method="POST" action="/api/game">
+        <button class={localbuttonStyle} type="submit">Start a New Game</button>
     </form>
     {/if}
 
-    <div class="w-[600px] aspect-square">
+    <div class="w-full sm:w-[600px] aspect-square mx-auto">
         {#if gameStatus == 0}
-        <h3>WINNER!!</h3>
+        <h3 class={headerStyle}>WINNER!!</h3>
         {:else if gameStatus == 1}
-        <h3>You Lost. Try Again</h3>
+        <h3 class={headerStyle}>You Lost. Try Again</h3>
         {:else}
-        <h3>Mistakes Left: {turns}</h3>
+        <h3 class={headerStyle}>Mistakes Left: {turns}</h3>
         {/if}
 
         <section class="w-full aspect-square grid grid-cols-[repeat(4,_25%)] grid-rows-4">
@@ -132,51 +136,3 @@
         </aside>
     </div>
 </Layout>
-
-<style>
-    /* @import 'tailwindcss'; */
-    /* section { */
-    /*     width: 100%; */
-    /*     aspect-ratio: 1; */
-    /*     display: grid; */
-    /*     grid-template-columns: repeat(4, 25%); */
-    /*     grid-template-rows: repeat(4, 1fr); */
-    /* } */
-
-    /* aside { */
-    /*     ul { */
-    /*         padding: 0; */
-    /*     } */
-    /**/
-    /*     li { */
-    /*         position: relative; */
-    /*         padding-left: 3rem; */
-    /**/
-    /*         &:before { */
-    /*             display: block; */
-    /*             position: absolute; */
-    /*             content: ""; */
-    /*             width: 2rem; */
-    /*             height: 2rem; */
-    /*             left: 0; */
-    /*             top: 0; */
-    /*         } */
-    /**/
-    /*         &.s0:before { */
-    /*             background-color: lightblue; */
-    /*         } */
-    /**/
-    /*         &.s1:before { */
-    /*             background-color: lightpink; */
-    /*         } */
-    /**/
-    /*         &.s2:before { */
-    /*             background-color: lightgoldenrodyellow; */
-    /*         } */
-    /**/
-    /*         &.s3:before { */
-    /*             background-color: lightsteelblue; */
-    /*         } */
-    /*     } */
-    /* } */
-</style>

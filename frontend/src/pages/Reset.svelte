@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import Layout from "../lib/Layout.svelte";
+    import { buttonStyle, formStyle, inputStyle, linkStyle, setStyle } from "../lib/styles";
 
     type Props = {
         valid: boolean
@@ -48,18 +49,19 @@
     }
 </script>
 
-<Layout title="The Common Game" subtitle="Reset you password">
-    <h1>Reset Password</h1>
+<Layout title="The Common Game" subtitle="Reset your password">
     {#if valid}
-        <form class="container" id="reset" onsubmit={resetPassword} method="POST" action="/api/reset-password">
+        <form class={formStyle} id="reset" onsubmit={resetPassword} method="POST" action="/api/reset-password">
             <input type="hidden" name="username" bind:value={username} />
             <input type="hidden" name="reset" bind:value={reset}/>
-            <input type="password" name="password" placeholder="Password" bind:value={password} />
-            <input type="password" name="password-confirm" placeholder="Confirm Password" bind:value={passwordConfirm} />
-            <button type="submit">Reset Password</button>
+            <fieldset class={setStyle}>
+                <input class={inputStyle} type="password" name="password" placeholder="Password" bind:value={password} />
+                <input class={inputStyle} type="password" name="password-confirm" placeholder="Confirm Password" bind:value={passwordConfirm} />
+                <button class={buttonStyle} type="submit">Reset Password</button>
+            </fieldset>
         </form>
     {:else}
         <p>Invalid Reset Link</p>
-        <a href="/">Go Back Home and Login</a>
+        <a class={linkStyle} href="/">Go Back Home and Login</a>
     {/if}
 </Layout>

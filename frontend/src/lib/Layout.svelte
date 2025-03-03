@@ -29,17 +29,17 @@ const selectedlinkStyle = `${navlinkStyle} text-teal-500`
 </script>
 
 <main class="mx-auto w-full font-[Lato]">
-    <nav class="flex-row w-9/10 flex justify-between mx-auto my-10">
+    <nav class="flex flex-col sm:flex-row w-9/10 gap-10 justify-between mx-auto my-10">
         <ul>
             <li>
                 <hgroup>
-                    <h1 class="text-4xl text-teal-800 font-[Bowlby_One_SC] font-normal"><a class="" href="/">{title}</a></h1>
-                    <p class="text-md text-slate-400">{subtitle}</p>
+                    <h1 class="text-4xl text-teal-800 hover:text-teal-700 transition-colors duration-200 font-[Bowlby_One_SC] font-normal"><a class="" href="/">{title}</a></h1>
+                    <p class="text-sm sm:text-base text-slate-400">{subtitle}</p>
                 </hgroup>
             </li>
         </ul>
         {#if links}
-            <ul class="flex flex-row gap-8 justify-evenly">
+            <ul class="flex flex-row gap-5 sm:gap-8 justify-start sm:justify-evenly">
                 {#each links as { current, url, name }}
                     {#if current}
                         <li class={selectedlinkStyle}><a href="{url}" aria-current="page">{name}</a></li>
@@ -67,14 +67,4 @@ const selectedlinkStyle = `${navlinkStyle} text-teal-500`
 
 <style>
     @import 'tailwindcss';
-
-    /* @media (max-width: 600px) { */
-    /*     section { */
-    /*         overflow: hidden; */
-    /*     } */
-    /**/
-    /*     nav { */
-    /*         flex-direction: column; */
-    /*     } */
-    /* } */
 </style>
