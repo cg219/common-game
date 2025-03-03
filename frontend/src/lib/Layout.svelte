@@ -24,10 +24,12 @@ async function logout(evt: Event) {
     if (data.success) location.pathname = "/"
 }
 
+const navlinkStyle = "text-zinc-200 text-md no-underline hover:underline hover:decoration-teal-500";
+const selectedlinkStyle = `${navlinkStyle} text-teal-500`
 </script>
 
 <main class="mx-auto w-full font-[Lato]">
-    <nav class="flex-col w-9/10 flex justify-between mx-auto my-10">
+    <nav class="flex-row w-9/10 flex justify-between mx-auto my-10">
         <ul>
             <li>
                 <hgroup>
@@ -37,21 +39,21 @@ async function logout(evt: Event) {
             </li>
         </ul>
         {#if links}
-            <ul>
+            <ul class="flex flex-row gap-8 justify-evenly">
                 {#each links as { current, url, name }}
                     {#if current}
-                        <li><a href="{url}" aria-current="page">{name}</a></li>
+                        <li class={selectedlinkStyle}><a href="{url}" aria-current="page">{name}</a></li>
                     {:else}
-                        <li><a class="contrast" href="{url}">{name}</a></li>
+                        <li class={navlinkStyle}><a href="{url}">{name}</a></li>
                     {/if} 
                 {/each}
-                <li>
+                <li class={navlinkStyle}>
                     <a href="/account">Account</a>
                 </li>
-                <li>
+                <li class={navlinkStyle}>
                     <a href="/report">Report a Bug</a>
                 </li>
-                <li>
+                <li class={navlinkStyle}>
                     <a onclick={logout} href="#logout" class="contrast">Logout</a>
                 </li>
             </ul>

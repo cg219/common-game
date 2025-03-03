@@ -1,5 +1,6 @@
 <script lang="ts">
     import Layout from "../lib/Layout.svelte";
+    import { formStyle, textareaStyle, buttonStyle, linkStyle, setStyle } from "../lib/styles";
 
     let problem = $state("")
     let result = $state("")
@@ -24,19 +25,27 @@
     {#if showThanks}
         <h1>Thanks!!!</h1>
         <p>Added your report. Stay tuned for any updates.</p>
-        <a href="/game">Go back to playing</a>
+        <a class={linkStyle} href="/game">Go back to playing</a>
     {:else}
-        <form onsubmit={report} class="container" id="report" method="POST" action="/api/report">
-            <label for="problem">What went wrong?</label>
-            <textarea name="problem" placeholder="Problem" bind:value={problem}></textarea>
+        <form onsubmit={report} class={`${formStyle} text-zinc-100`} id="report" method="POST" action="/api/report">
+            <fieldset class={setStyle}>
+                <label for="problem">What went wrong?</label>
+                <textarea class={textareaStyle} name="problem" placeholder="Problem" bind:value={problem}></textarea>
+            </fieldset>
 
-            <label for="result">What did you expect to happen?</label>
-            <textarea name="result" placeholder="Expectation" bind:value={result}></textarea>
+            <fieldset class={setStyle}>
+                <label for="result">What did you expect to happen?</label>
+                <textarea class={textareaStyle} name="result" placeholder="Expectation" bind:value={result}></textarea>
+            </fieldset>
 
-            <label for="steps">How can we reproduce the problem?</label>
-            <textarea name="steps" placeholder="Steps to reproduce" bind:value={steps}></textarea>
+            <fieldset class={setStyle}>
+                <label for="steps">How can we reproduce the problem?</label>
+                <textarea class={textareaStyle} name="steps" placeholder="Steps to reproduce" bind:value={steps}></textarea>
+            </fieldset>
 
-            <button type="submit">Submit Report</button>
+            <fieldset class={setStyle}>
+                <button class={buttonStyle} type="submit">Submit Report</button>
+            </fieldset>
         </form>
     {/if}
 </Layout>
