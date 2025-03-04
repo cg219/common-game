@@ -3,7 +3,7 @@
     import Layout from "../lib/Layout.svelte";
     import { onMount, setContext } from "svelte";
     import GamePiece from "../lib/GamePiece.svelte";
-    import { buttonStyle, formStyle } from "../lib/styles";
+    import { buttonStyle } from "../lib/styles";
 
     let words = $state([])
     let gameStatus = $state(2)
