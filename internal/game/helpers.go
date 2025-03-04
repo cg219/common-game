@@ -3,15 +3,13 @@ package game
 import (
 	"log"
 	"time"
-
-	"github.com/cg219/common-game/internal/database"
 )
 
 type wordsResponse struct {
     Words []string `json:"words"`
 }
 
-func Create(rows []database.PopulateSubjectsRow) *Game {
+func Create(rows []GameData) *Game {
     return newGame(rows)
 }
 
@@ -46,7 +44,7 @@ func start(g *Game) <-chan Status {
     return output
 }
 
-func newGame(rows []database.PopulateSubjectsRow) *Game {
+func newGame(rows []GameData) *Game {
     var subjects [4]Subject
 
     if rows != nil {
@@ -54,10 +52,10 @@ func newGame(rows []database.PopulateSubjectsRow) *Game {
         for i, v := range rows {
             var words [4]string
 
-            words[0] = v.Word.String
-            words[1] = v.Word_2.String
-            words[2] = v.Word_3.String
-            words[3] = v.Word_4.String
+            words[0] = v.Word
+            words[1] = v.Word2
+            words[2] = v.Word3
+            words[3] = v.Word4
 
             subjects[i] = Subject{ Name: v.Name, Words: words }
         }

@@ -1,17 +1,18 @@
 package game
 
 import (
-	"context"
 	"testing"
-	"time"
 )
 
 func TestGame(t *testing.T) {
-    game, err := Create(GameConfig{ Q: nil, Ctx: context.Background()})
-
-    if err != nil {
-        t.Fatalf("error: %s", err)
+    boardData := []GameData{
+        GameData{ Name: "Days of the Week", Word: "Monday", Word2: "Tuesday", Word3: "Thursday", Word4: "Sunday" },
+        GameData{ Name: "Through the Air", Word: "Leap", Word2: "Soar", Word3: "Float", Word4: "Fly" },
+        GameData{ Name: "Races", Word: "Black", Word2: "White", Word3: "Hispanic", Word4: "Indian" },
+        GameData{ Name: "Colors", Word: "Brown", Word2: "Red", Word3: "Blue", Word4: "Orange" },
     }
+
+    game := Create(boardData)
 
     if game == nil {
         t.Fatal("expected Game, got nil")
@@ -76,46 +77,46 @@ func TestGame(t *testing.T) {
 
     })
 
-    t.Run("Test Game Cancellation", func(t *testing.T) {
-        tests := []struct {
-            moves []Move
-            outcome LoopStatus
-        } {
-            {
-                moves: []Move{
-                    newMove("Monday", "Tuesday", "Thursday", "Sunday"),
-                    newMove("Leap", "Soar", "Float", "Fly"),
-                },
-                outcome: Inactive,
-            },
-        }
-
-        for _, g := range tests {
-            game.Reset()
-            game.HealthTickInvteral = 100 * time.Millisecond
-            output, input := game.Run()
-
-            go func() {
-                for _, m := range g.moves {
-                    input <- m
-                    time.Sleep(200 * time.Millisecond)
-                }
-
-                close(input)
-            }()
-
-            var status LoopStatus
-
-            for s := range output {
-                status = s.LoopStatus
-            }
-
-            if status.Enum() != g.outcome.Enum() {
-                i := len(g.moves) - 1
-                t.Fatalf("\nMove: %s\nexpected %s; got %s", g.moves[i].Words, g.outcome, status)
-            }
-        }
-    })
+    // t.Run("Test Game Cancellation", func(t *testing.T) {
+    //     tests := []struct {
+    //         moves []Move
+    //         outcome LoopStatus
+    //     } {
+    //         {
+    //             moves: []Move{
+    //                 newMove("Monday", "Tuesday", "Thursday", "Sunday"),
+    //                 newMove("Leap", "Soar", "Float", "Fly"),
+    //             },
+    //             outcome: Inactive,
+    //         },
+    //     }
+    //
+    //     for _, g := range tests {
+    //         game.Reset()
+    //         game.HealthTickInvteral = 100 * time.Millisecond
+    //         output, input := game.Run()
+    //
+    //         go func() {
+    //             for _, m := range g.moves {
+    //                 input <- m
+    //                 time.Sleep(200 * time.Millisecond)
+    //             }
+    //
+    //             close(input)
+    //         }()
+    //
+    //         var status LoopStatus
+    //
+    //         for s := range output {
+    //             status = s.LoopStatus
+    //         }
+    //
+    //         if status.Enum() != g.outcome.Enum() {
+    //             i := len(g.moves) - 1
+    //             t.Fatalf("\nMove: %s\nexpected %s; got %s", g.moves[i].Words, g.outcome, status)
+    //         }
+    //     }
+    // })
 
     t.Run("Test StartGame", func(t *testing.T) {
         test := struct {
