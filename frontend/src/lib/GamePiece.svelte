@@ -16,7 +16,7 @@
 </script>
 
 <button
-    class="{pieceStyle} {selected ? "bg-teal-800! text-slate-200!" : "bg-slate-600 hover:bg-slate-500 hover:text-slate-200!"}
+    class="{pieceStyle} {selected ? "bg-teal-800! text-slate-200!" : "bg-slate-300 hover:bg-slate-500 hover:text-slate-200!"}
     {correct && subject == 0 ? "bg-blue-300! text-slate-800! hover:text-slate-800!" : ""}
     {correct && subject == 1 ? "bg-pink-300! text-slate-800! hover:text-slate-800!" : ""}
     {correct && subject == 2 ? "bg-amber-300! text-slate-800! hover:text-slate-800!" : ""}
