@@ -4,6 +4,8 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/cg219/common-game/internal/database"
 )
 
 type Subject struct {
@@ -20,6 +22,14 @@ type WordData struct {
     Value string `json:"value,omitempty"`
     Correct bool `json:"correct"`
     Subject int `json:"subject"`
+}
+
+type GameData struct {
+	Name string
+	Word string
+	Word2 string
+	Word3 string
+	Word4 string
 }
 
 type Game struct {
@@ -47,6 +57,26 @@ type Stats struct {
     Correct int
     StartTime time.Time
     EndTime time.Time
+}
+
+func (g *GameData) Decode(data database.PopulateSubjectsRow) {
+    g.Name = data.Name
+
+    if data.Word.Valid {
+        g.Word = data.Word.String
+    }
+
+    if data.Word_2.Valid {
+        g.Word2 = data.Word_2.String
+    }
+
+    if data.Word_3.Valid {
+        g.Word3 = data.Word_3.String
+    }
+
+    if data.Word_4.Valid {
+        g.Word4 = data.Word_4.String
+    }
 }
 
 func (g *Game) Words() []string {

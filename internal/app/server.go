@@ -123,7 +123,16 @@ func loadActiveGames(srv *Server) {
         }
 
         // TODO: Update game logic to maintain state or be able to export an encoding to load from
-        g := game.Create(populatedBoard)
+
+        boardData := []game.GameData{}
+
+        for _, d := range populatedBoard {
+            gd := game.GameData{}
+            gd.Decode(d)
+            boardData = append(boardData, gd)
+        }
+
+        g := game.Create(boardData)
 
         statusCh, moveCh := g.Run()
         srv.games[int(cg.ID)] = &LiveGameData{
@@ -242,7 +251,15 @@ func (s *Server) GetGame(ctx context.Context, uid int64) (*game.Game, int, error
             ID_4: board.Subject4.Int64,
         })
 
-        g = game.Create(populatedBoard)
+        boardData := []game.GameData{}
+
+        for _, d := range populatedBoard {
+            gd := game.GameData{}
+            gd.Decode(d)
+            boardData = append(boardData, gd)
+        }
+
+        g = game.Create(boardData)
 
         tx, err := s.appcfg.connection.BeginTx(ctx, nil)
         if err != nil {
