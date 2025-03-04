@@ -68,4 +68,8 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           envs: SECRETS_FILE
-          script_path: deploy.sh
+          script: |
+            cd projects
+            cd common-game
+            git pull
+            docker stack deploy -c stack.yaml commongame
