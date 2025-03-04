@@ -10,5 +10,5 @@ else
     cd common-game
 fi
 
-echo $SECRETS_FILE > secrets.yaml
+# echo $SECRETS_FILE > secrets.yaml
 docker stack deploy -c stack.yaml commongame
