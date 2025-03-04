@@ -59,17 +59,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Setup SSH
-        uses: appleboy/ssh-action@v1.2.1
-        env:
-          SECRETS_FILE: ${{ secrets.SECRETS }}
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          envs: SECRETS_FILE
-          script: |
-            cd projects
-            cd common-game
-            git pull
-            docker stack deploy -c stack.yaml commongame
+        run: |
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }}
+      - name: Connect and Update
+        run: |
+          ssh ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}
+          cd projects
+          cd common-game
+          git pull
+          docker stack deploy -c stack.yaml commongame
+      - name: Cleanup
+        run: rm -rf ~/.ssh
