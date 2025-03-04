@@ -65,10 +65,6 @@ jobs:
           ssh-keyscan -H ${{ secrets.SSH_HOST }}
       - name: Connect and Update
         run: |
-          ssh ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}
-          cd projects
-          cd common-game
-          git pull
-          docker stack deploy -c stack.yaml commongame
+          ssh ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "cd projects && cd common-game && git pull && docker stack deploy -c stack.yaml commongame && exit"
       - name: Cleanup
         run: rm -rf ~/.ssh
