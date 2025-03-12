@@ -29,7 +29,7 @@ const selectedlinkStyle = `${navlinkStyle} text-teal-500`
 </script>
 
 <main class="mx-auto w-full font-[Lato]">
-    <nav class="flex flex-col sm:flex-row w-9/10 gap-10 justify-between mx-auto my-10">
+    <nav class="flex flex-col sm:flex-row w-9/10 gap-3 sm:gap-10 justify-between mx-auto mt-4 sm:my-10">
         <ul>
             <li>
                 <hgroup>
@@ -60,7 +60,7 @@ const selectedlinkStyle = `${navlinkStyle} text-teal-500`
         {/if}
     </nav>
 
-    <section class="overflow-hidden w-9/10 m-auto mt-10">
+    <section class="overflow-hidden w-9/10 m-auto mt-4 sm:mt-10">
         {@render children()}
     </section>
 </main>

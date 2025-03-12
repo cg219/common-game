@@ -10,29 +10,58 @@
     let gid = $state(0)
     let turns = $state(0)
     let subjects = $state([])
+    let selected = $state([]);
+    let selectable = $derived(selected.length < 4);
+    let order = $derived.by(() => words.map((v, i) => [v.word, i]))
 
     setContext("select", (value: string, wasSelected: string) => {
         if (![2, 5, 6].includes(gameStatus)) return;
+        if (!selectable) return;
+
         const idx = words.findIndex((w) => w.word == value)
 
         words[idx].selected = wasSelected ? false : true;
-
-        const selected = words
+        selected = words
             .map((w) => {
                 w.wrong = false;
                 return w;
             })
             .filter((w) => w.selected)
             .map((w) => w.word)
-
-        if (selected.length == 4) {
-            submitMoves(selected)
-        }
     })
 
     onMount(() => {
         getGame()
     })
+
+    function reorder(newWords: { correct: boolean, word: string }[]) {
+        const localOrder = [...order];
+        const localWords = Array(newWords.length).fill(0);
+
+        localOrder.forEach(([word, i]) => {
+            localWords[i] = newWords.find((v) => v.word == word)
+        })
+
+       return  localWords;
+    }
+
+    function shuffle(evt?: Event) {
+        evt?.preventDefault()
+
+        words.sort(() => Math.random() > Math.random() ? -1 : 1)
+    }
+
+    function deselectAll(evt?: Event) {
+        evt?.preventDefault()
+
+        selected.forEach((w) => {
+            const idx = words.findIndex((v) => v.word == w)
+
+            words[idx].selected = false;
+        })
+
+        selected = [];
+    }
 
     async function getGame(evt?: Event) {
         evt?.preventDefault()
@@ -50,11 +79,14 @@
         subjects = []
     }
 
-    async function submitMoves(moves: string[]) {
+    async function submitMoves(evt?: Event) {
+        evt?.preventDefault()
+        if (selectable) return;
+
         const res = await fetch("/api/game", {
             method: "PUT",
             body: JSON.stringify({
-                words: moves,
+                words: selected,
                 gid
             })
         })
@@ -62,10 +94,11 @@
         const data = await res.json() as GameResponse
 
         gid = data.id
-        words = data.words
+        words = reorder(data.words);
         turns = data.moveLeft
         gameStatus = data.status
 
+        selected = [];
         if (data.move.correct) {
             setSubjects(data.move.subjects)
             return setCorrect(data.move.words)
@@ -95,9 +128,10 @@
     }
 
     const legendStyle = "relative text-zinc-100 text-base sm:text-lg leading-[2rem] pl-[3rem] before:block before:absolute before:content-[''] before:w-[2rem] before:h-[2rem] before:left-[0] before:top-[0]";
-    const headerStyle = "text-xl text-zinc-100 mb-5";
+    const headerStyle = "text-xl text-zinc-100 mb-2";
     const localformStyle = "flex flex-col w-full sm:w-[600px] mx-auto text-slate-100";
     const localbuttonStyle = `${buttonStyle} hover:bg-teal-700 transition-colors duration-200 mb-4`;
+    const controlbuttonStyle = `${buttonStyle} bg-slate-200! hover:bg-slate-500! hover:text-slate-100! transition-colors duration-200 w-full`;
 </script>
 
 <Layout title="The Common Game" subtitle="Match groups of 4 words that have something in common." links={[]}>
@@ -121,6 +155,12 @@
                 <GamePiece value={word.word} correct={word.correct} wrong={word.wrong} subject={word.subject} selected={word.selected} />
             {/each}
         </section>
+
+        <ul class="flex flex-row w-full justify-evenly mt-5">
+            <li class="grow"><button class={controlbuttonStyle} onclick={shuffle}>Shuffle</button></li>
+            <li class="grow px-4"><button class={controlbuttonStyle} onclick={deselectAll}>Deselect</button></li>
+            <li class="grow"><button class={controlbuttonStyle} onclick={submitMoves}>Submit</button></li>
+        </ul>
 
         <aside class="py-4">
             <ul class="p-0 flex flex-col gap-4">
