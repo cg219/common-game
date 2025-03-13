@@ -16,9 +16,10 @@
 
     setContext("select", (value: string, wasSelected: string) => {
         if (![2, 5, 6].includes(gameStatus)) return;
-        if (!selectable) return;
 
         const idx = words.findIndex((w) => w.word == value)
+
+        if (!selectable && !words[idx].selected) return;
 
         words[idx].selected = wasSelected ? false : true;
         selected = words
