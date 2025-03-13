@@ -31,6 +31,7 @@ type Server struct {
     log *slog.Logger
     hasher *argon2id.Argon2id
     games map[int]*LiveGameData
+    storage *Storage
 }
 
 type LiveGameData struct {
@@ -93,44 +94,23 @@ const (
 )
 
 func NewServer(cfg *AppCfg) *Server {
+    logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
     return &Server{
         mux: http.NewServeMux(),
         appcfg: cfg,
-        log: slog.New(slog.NewTextHandler(os.Stderr, nil)),
+        log: logger, 
         hasher: argon2id.NewArgon2id(16 * 1024, 2, 1, 16, 32),
         games: make(map[int]*LiveGameData),
+        storage: NewStorage(cfg.database, logger),
     }
 }
 
 func loadActiveGames(srv *Server) {
-    games, err := srv.appcfg.database.GetActiveGames(context.Background())
-    if err != nil {
-        srv.log.Error("loading active games", "err", err)
-        return
-    }
+    _, games := srv.storage.GetActiveGames()
 
-    for _, cg := range games {
-        populatedBoard, err := srv.appcfg.database.PopulateSubjects(context.Background(), database.PopulateSubjectsParams{
-            ID: cg.Subject1.Int64,
-            ID_2: cg.Subject2.Int64,
-            ID_3: cg.Subject3.Int64,
-            ID_4: cg.Subject4.Int64,
-        })
-
-        if err != nil {
-            srv.log.Error("populating active games", "err", err)
-            return
-        }
-
-        // TODO: Update game logic to maintain state or be able to export an encoding to load from
-        g := game.Create(populatedBoard)
-
-        statusCh, moveCh := g.Run()
-        srv.games[int(cg.ID)] = &LiveGameData{
-            game: g,
-            mch: moveCh,
-            sch: statusCh,
-        }
+    for _, v := range games {
+        srv.games[v.Id] = v.Data
     }
 }
 
