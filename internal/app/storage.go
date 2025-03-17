@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"time"
@@ -39,6 +41,35 @@ func (s *Storage) UpdateGame(gid int64, status game.StatusGroup, g *game.Game) [
 
 func (s *Storage) ValidateNewUser(token string) (error, bool, string) {
     return s.ValidateNewUserWithContext(context.Background(), token)
+}
+
+func (s *Storage) NewUser(email string, username string, hash string) (error, string) {
+    return s.NewUserWithContext(context.Background(), email, username, hash)
+}
+
+func (s *Storage) NewUserWithContext(ctx context.Context, email string, username string, hash string) (error, string) {
+    existingUser, err := s.q.GetUser(ctx, username)
+    if err != nil && err != sql.ErrNoRows {
+        s.log.Error("sql err", "err", err)
+        return fmt.Errorf(INTERNAL_ERROR), ""
+    }
+
+    if existingUser.Username != "" {
+        return fmt.Errorf(USERNAME_EXISTS_ERROR), ""
+    }
+
+    validbytes := make([]byte, 32)
+    rand.Read(validbytes)
+    validToken := base64.URLEncoding.EncodeToString(validbytes)[:16]
+
+    err = s.q.SaveUser(ctx, database.SaveUserParams{
+        Username: username,
+        Email: email,
+        Password: hash,
+        ValidToken: sql.NullString{ String: validToken, Valid: true },
+    })
+
+    return nil, validToken
 }
 
 func (s *Storage) ValidateNewUserWithContext(ctx context.Context, token string) (error, bool, string) {

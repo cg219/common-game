@@ -678,32 +678,16 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) error {
        return fmt.Errorf(MISSING_PARAMS_ERROR)
     }
 
-    existingUser, err := s.appcfg.database.GetUser(r.Context(), body.Username)
-    if err != nil && err != sql.ErrNoRows {
-        s.log.Error("sql err", "err", err)
-        return fmt.Errorf(INTERNAL_ERROR)
-    }
-
-    if existingUser.Username != "" {
-        return fmt.Errorf(USERNAME_EXISTS_ERROR)
-    }
-
     hashPass, err := s.hasher.EncodeFromString(body.Password)
     if err != nil {
         s.log.Error("Encoding Password", "password", body.Password)
         return fmt.Errorf(INTERNAL_ERROR)
     }
 
-    validbytes := make([]byte, 32)
-    rand.Read(validbytes)
-    validToken := base64.URLEncoding.EncodeToString(validbytes)[:16]
-
-    err = s.appcfg.database.SaveUser(r.Context(), database.SaveUserParams{
-        Username: body.Username,
-        Email: body.Email,
-        Password: hashPass,
-        ValidToken: sql.NullString{ String: validToken, Valid: true },
-    })
+    err, validToken := s.storage.NewUserWithContext(r.Context(), body.Email, body.Username, hashPass)
+    if err != nil {
+        return err
+    }
 
     e := Email{
         From: s.appcfg.config.Email.From,
