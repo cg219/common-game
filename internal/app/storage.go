@@ -47,6 +47,32 @@ func (s *Storage) NewUser(email string, username string, hash string) (error, st
     return s.NewUserWithContext(context.Background(), email, username, hash)
 }
 
+func (s *Storage) StoreBugReport(username string, problem string, result string, steps string) (error, database.GetUserRow) {
+    return s.StoreBugReportWithContext(context.Background(), username, problem, result, steps)
+}
+
+func (s *Storage) StoreBugReportWithContext(ctx context.Context, username string, problem string, result string, steps string) (error, database.GetUserRow) {
+    user, err := s.q.GetUser(ctx, username)
+    if err != nil {
+        s.log.Error("getting user", "err", err)
+        return err, database.GetUserRow{}
+    }
+
+    err = s.q.ReportBug(ctx, database.ReportBugParams{
+        Problem: problem,
+        Result: result,
+        Steps: steps,
+        Uid: user.ID,
+    })
+
+    if err != nil {
+        s.log.Error("reporting bug", "err", err)
+        return err, database.GetUserRow{}
+    }
+
+    return nil, user
+}
+
 func (s *Storage) NewUserWithContext(ctx context.Context, email string, username string, hash string) (error, string) {
     existingUser, err := s.q.GetUser(ctx, username)
     if err != nil && err != sql.ErrNoRows {

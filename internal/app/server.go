@@ -360,20 +360,17 @@ func (s *Server) ReportBug(w http.ResponseWriter, r *http.Request) error {
         Steps string `json:"steps"`
     }
 
-    user, _ := s.appcfg.database.GetUser(r.Context(), r.Context().Value("username").(string))
-
-    defer r.Body.Close()
-
     data, err := decode[Body](r)
-    err = s.appcfg.database.ReportBug(r.Context(), database.ReportBugParams{
-        Problem: data.Problem,
-        Result: data.Result,
-        Steps: data.Steps,
-        Uid: user.ID,
-    })
-
     if err != nil {
-        s.log.Error("reporting bug", "err", err)
+        r.Body.Close()
+        return fmt.Errorf(INTERNAL_ERROR);
+    }
+
+    r.Body.Close()
+
+    err, user := s.storage.StoreBugReportWithContext(r.Context(), r.Context().Value("username").(string), data.Problem, data.Result, data.Steps)
+    if err != nil {
+        return fmt.Errorf(INTERNAL_ERROR);
     }
 
     e := Email{
