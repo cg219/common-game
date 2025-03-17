@@ -159,8 +159,6 @@ func (s *Server) HealthCheck(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (s *Server) GetGame(ctx context.Context, uid int64) (*game.Game, int, error) {
-    var g *game.Game
-
     gid, err := s.appcfg.database.GetActiveGidForUid(ctx, uid)
     if err != nil {
         if err != sql.ErrNoRows {
@@ -170,100 +168,8 @@ func (s *Server) GetGame(ctx context.Context, uid int64) (*game.Game, int, error
     }
 
     if gid == 0 {
-        avoid, err := s.appcfg.database.GetRecentlyPlayedSubjects(ctx, uid)
+        err, id, g := s.storage.GetNewGameWithContext(ctx, s.appcfg.connection, int(uid))
         if err != nil {
-            s.log.Error("Error retreiving recent subjects", "err",err)
-            return nil, 0, fmt.Errorf(INTERNAL_ERROR)
-        }
-
-        avoidList := make([]int64, 0)
-
-        for _, v := range avoid {
-            avoidList = append(avoidList, v.Subject1.Int64)
-            avoidList = append(avoidList, v.Subject2.Int64)
-            avoidList = append(avoidList, v.Subject3.Int64)
-            avoidList = append(avoidList, v.Subject4.Int64)
-        }
-
-        pad := 16 - len(avoidList)
-
-        for range pad {
-            avoidList = append(avoidList, int64(0))
-        }
-
-        board, err := s.appcfg.database.GetBoardForGame(ctx, database.GetBoardForGameParams{
-            Uid: uid,
-            ID: avoidList[0],
-            ID_2: avoidList[1],
-            ID_3: avoidList[2],
-            ID_4: avoidList[3],
-            ID_5: avoidList[4],
-            ID_6: avoidList[5],
-            ID_7: avoidList[6],
-            ID_8: avoidList[7],
-            ID_9: avoidList[8],
-            ID_10: avoidList[9],
-            ID_11: avoidList[10],
-            ID_12: avoidList[11],
-            ID_13: avoidList[12],
-            ID_14: avoidList[13],
-            ID_15: avoidList[14],
-            ID_16: avoidList[15],
-        })
-        if err != nil {
-            s.log.Error("Error retreiving subjects", "err",err)
-            return nil, 0, fmt.Errorf(INTERNAL_ERROR)
-        }
-
-        populatedBoard, err := s.appcfg.database.PopulateSubjects(ctx, database.PopulateSubjectsParams{
-            ID: board.Subject1.Int64,
-            ID_2: board.Subject2.Int64,
-            ID_3: board.Subject3.Int64,
-            ID_4: board.Subject4.Int64,
-        })
-
-        g = game.Create(populatedBoard)
-
-        tx, err := s.appcfg.connection.BeginTx(ctx, nil)
-        if err != nil {
-            s.log.Error("Error creating tx", "err", err)
-            return nil, 0, fmt.Errorf(INTERNAL_ERROR)
-        }
-
-        qtx := s.appcfg.database.WithTx(tx)
-
-        id, err := qtx.SaveNewGame(ctx, database.SaveNewGameParams{
-            Active: sql.NullBool{ Bool: true, Valid: true },
-            Start: sql.NullInt64{ Int64: time.Now().UTC().UnixMilli(), Valid: true },
-        })
-
-        if err != nil {
-            s.log.Error("Error creating game", "err", err)
-            tx.Rollback()
-            return nil, 0, fmt.Errorf(INTERNAL_ERROR)
-        }
-
-        err = qtx.SaveUserToGame(ctx, database.SaveUserToGameParams{ Uid: uid, Gid: id })
-        if err != nil {
-            s.log.Error("Error saving user to game", "err", err)
-            tx.Rollback()
-            return nil, 0, fmt.Errorf(INTERNAL_ERROR)
-        }
-
-        err = qtx.SaveBoardToGame(ctx, database.SaveBoardToGameParams{
-            Bid: sql.NullInt64{ Int64: board.ID, Valid: true },
-            ID: id,
-        })
-        if err != nil {
-            s.log.Error("Error saving board to game", "err", err)
-            tx.Rollback()
-            return nil, 0, fmt.Errorf(INTERNAL_ERROR)
-        }
-
-        err = tx.Commit()
-        if err != nil {
-            s.log.Error("Error committing tx", "tx", tx, "err", err)
-            tx.Rollback()
             return nil, 0, fmt.Errorf(INTERNAL_ERROR)
         }
 
