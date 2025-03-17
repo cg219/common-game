@@ -33,6 +33,87 @@ func (s *Storage) GetActiveGames() (error, []ActiveGame) {
     return s.GetActiveGamesWithContext(context.Background())
 }
 
+func (s *Storage) UpdateGame(gid int64, status game.StatusGroup, g *game.Game) []GameResponseSubject {
+    return s.UpdateGameWithContext(context.Background(), gid, status, g)
+}
+
+func (s *Storage) ValidateNewUser(token string) (error, bool, string) {
+    return s.ValidateNewUserWithContext(context.Background(), token)
+}
+
+func (s *Storage) ValidateNewUserWithContext(ctx context.Context, token string) (error, bool, string) {
+    user, err := s.q.GetUserByValidToken(ctx, sql.NullString{
+        String: token,
+        Valid: true,
+    })
+
+    if err != nil {
+        if err == sql.ErrNoRows {
+            return nil, false, ""
+        } else {
+            s.log.Error("checking valid token", "token", token, "err", err)
+            return fmt.Errorf(INTERNAL_ERROR), false, ""
+        }
+    }
+
+    if user.Username != "" {
+        err = s.q.ValidateUser(ctx, user.Username)
+
+        if err != nil {
+            s.log.Error("validating user", "user", user.Username, "err", err)
+            return fmt.Errorf(INTERNAL_ERROR), false, ""
+        }
+
+        return nil, true, user.Username
+    }
+
+    return nil, false, ""
+}
+
+func (s *Storage) UpdateGameWithContext(ctx context.Context, gid int64, status game.StatusGroup, g *game.Game) []GameResponseSubject {
+    switch status.Status.Status() {
+    case game.Playing:
+        s.q.UpdateGameTurns(ctx, database.UpdateGameTurnsParams{
+            ID: gid,
+            Wrong: sql.NullInt64{ Int64: int64(g.Metadata.WrongTurns), Valid: true },
+            Turns: sql.NullInt64{ Int64: int64(g.Metadata.TotalTurns), Valid: true },
+        })
+    case game.Win:
+        s.q.UpdateGameStatus(ctx, database.UpdateGameStatusParams{
+            ID: gid,
+            End: sql.NullInt64{ Int64: int64(time.Now().UTC().UnixMilli()), Valid: true },
+            Active: sql.NullBool{ Bool: false, Valid: true },
+            Win: sql.NullBool{ Bool: true, Valid: true },
+        })
+    case game.Lose:
+        s.q.UpdateGameStatus(ctx, database.UpdateGameStatusParams{
+            ID: gid,
+            End: sql.NullInt64{ Int64: int64(time.Now().UTC().UnixMilli()), Valid: true },
+            Active: sql.NullBool{ Bool: false, Valid: true },
+            Win: sql.NullBool{ Bool: false, Valid: true },
+        })
+    default:
+        s.q.UpdateGameTurns(ctx, database.UpdateGameTurnsParams{
+            ID: gid,
+            Turns: sql.NullInt64{ Int64: int64(g.Metadata.TotalTurns), Valid: true },
+            Wrong: sql.NullInt64{ Int64: int64(g.Metadata.WrongTurns), Valid: true },
+        })
+    }
+
+    subjects := make([]GameResponseSubject, 0)
+
+    if status.Status.Metadata.Correct {
+        for _, v := range g.CompletedSubjects {
+            subjects = append(subjects, GameResponseSubject{
+                Id: v,
+                Name: g.Subjects[v].Name,
+            }) 
+        }
+    }
+
+    return subjects
+}
+
 func (s *Storage) GetNewGameWithContext(ctx context.Context, conn *sql.DB, uid int) (error, int64, *game.Game) {
     avoid, err := s.q.GetRecentlyPlayedSubjects(ctx, int64(uid))
     if err != nil {

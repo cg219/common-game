@@ -270,45 +270,7 @@ func (s *Server) UpdateGame(w http.ResponseWriter, r *http.Request) error {
     d.mch <- game.Move{ Words: body.Words }
     status := <- d.sch
 
-    switch status.Status.Status() {
-    case game.Playing:
-        s.appcfg.database.UpdateGameTurns(r.Context(), database.UpdateGameTurnsParams{
-            ID: int64(body.Gid),
-            Wrong: sql.NullInt64{ Int64: int64(d.game.Metadata.WrongTurns), Valid: true },
-            Turns: sql.NullInt64{ Int64: int64(d.game.Metadata.TotalTurns), Valid: true },
-        }) 
-    case game.Win:
-        s.appcfg.database.UpdateGameStatus(r.Context(), database.UpdateGameStatusParams{
-            ID: int64(body.Gid),
-            End: sql.NullInt64{ Int64: int64(time.Now().UTC().UnixMilli()), Valid: true },
-            Active: sql.NullBool{ Bool: false, Valid: true },
-            Win: sql.NullBool{ Bool: true, Valid: true },
-        })
-    case game.Lose:
-        s.appcfg.database.UpdateGameStatus(r.Context(), database.UpdateGameStatusParams{
-            ID: int64(body.Gid),
-            End: sql.NullInt64{ Int64: int64(time.Now().UTC().UnixMilli()), Valid: true },
-            Active: sql.NullBool{ Bool: false, Valid: true },
-            Win: sql.NullBool{ Bool: false, Valid: true },
-        })
-    default:
-        s.appcfg.database.UpdateGameTurns(r.Context(), database.UpdateGameTurnsParams{
-            ID: int64(body.Gid),
-            Turns: sql.NullInt64{ Int64: int64(d.game.Metadata.TotalTurns), Valid: true },
-            Wrong: sql.NullInt64{ Int64: int64(d.game.Metadata.WrongTurns), Valid: true },
-        })
-    }
-
-    subjects := make([]GameResponseSubject, 0)
-
-    if status.Status.Metadata.Correct {
-        for _, v := range d.game.CompletedSubjects {
-            subjects = append(subjects, GameResponseSubject{
-                Id: v,
-                Name: d.game.Subjects[v].Name,
-            }) 
-        }
-    }
+    subjects := s.storage.UpdateGameWithContext(r.Context(), int64(body.Gid), status, d.game)
 
     gr := &GameResponse{
         GameId: body.Gid,
@@ -763,35 +725,17 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (s *Server) ValidateRegistration(w http.ResponseWriter, r *http.Request) error {
-    validvalue := r.PathValue("validvalue")
-    user, err := s.appcfg.database.GetUserByValidToken(r.Context(), sql.NullString{
-        String: validvalue,
-        Valid: true,
-    })
-
+    err, valid, username := s.storage.ValidateNewUserWithContext(r.Context(), r.PathValue("validvalue"))
     if err != nil {
-        if err == sql.ErrNoRows {
-            http.Redirect(w, r, "/", http.StatusSeeOther)
-            return nil
-        } else {
-            s.log.Error("checking valid token", "token", validvalue, "err", err)
-            return fmt.Errorf(INTERNAL_ERROR)
-        }
+        return err;
     }
 
-    if user.Username != "" {
-        err = s.appcfg.database.ValidateUser(r.Context(), user.Username)
-
-        if err != nil {
-            s.log.Error("validating user", "user", user.Username, "err", err)
-            return fmt.Errorf(INTERNAL_ERROR)
-        }
-
-        s.setTokens(w, r, user.Username)
+    if valid {
+        s.setTokens(w, r, username)
         http.Redirect(w, r, "/game", http.StatusSeeOther)
         return nil
     }
-
+    
     http.Redirect(w, r, "/", http.StatusSeeOther)
     return nil
 }
