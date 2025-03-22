@@ -31,6 +31,7 @@ type Server struct {
     log *slog.Logger
     hasher *argon2id.Argon2id
     games map[int]*LiveGameData
+    storage *Storage
 }
 
 type LiveGameData struct {
@@ -93,44 +94,23 @@ const (
 )
 
 func NewServer(cfg *AppCfg) *Server {
+    logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
     return &Server{
         mux: http.NewServeMux(),
         appcfg: cfg,
-        log: slog.New(slog.NewTextHandler(os.Stderr, nil)),
+        log: logger, 
         hasher: argon2id.NewArgon2id(16 * 1024, 2, 1, 16, 32),
         games: make(map[int]*LiveGameData),
+        storage: NewStorage(cfg.database, logger),
     }
 }
 
 func loadActiveGames(srv *Server) {
-    games, err := srv.appcfg.database.GetActiveGames(context.Background())
-    if err != nil {
-        srv.log.Error("loading active games", "err", err)
-        return
-    }
+    _, games := srv.storage.GetActiveGames()
 
-    for _, cg := range games {
-        populatedBoard, err := srv.appcfg.database.PopulateSubjects(context.Background(), database.PopulateSubjectsParams{
-            ID: cg.Subject1.Int64,
-            ID_2: cg.Subject2.Int64,
-            ID_3: cg.Subject3.Int64,
-            ID_4: cg.Subject4.Int64,
-        })
-
-        if err != nil {
-            srv.log.Error("populating active games", "err", err)
-            return
-        }
-
-        // TODO: Update game logic to maintain state or be able to export an encoding to load from
-        g := game.Create(populatedBoard)
-
-        statusCh, moveCh := g.Run()
-        srv.games[int(cg.ID)] = &LiveGameData{
-            game: g,
-            mch: moveCh,
-            sch: statusCh,
-        }
+    for _, v := range games {
+        srv.games[v.Id] = v.Data
     }
 }
 
@@ -179,8 +159,6 @@ func (s *Server) HealthCheck(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (s *Server) GetGame(ctx context.Context, uid int64) (*game.Game, int, error) {
-    var g *game.Game
-
     gid, err := s.appcfg.database.GetActiveGidForUid(ctx, uid)
     if err != nil {
         if err != sql.ErrNoRows {
@@ -190,100 +168,8 @@ func (s *Server) GetGame(ctx context.Context, uid int64) (*game.Game, int, error
     }
 
     if gid == 0 {
-        avoid, err := s.appcfg.database.GetRecentlyPlayedSubjects(ctx, uid)
+        err, id, g := s.storage.GetNewGameWithContext(ctx, s.appcfg.connection, int(uid))
         if err != nil {
-            s.log.Error("Error retreiving recent subjects", "err",err)
-            return nil, 0, fmt.Errorf(INTERNAL_ERROR)
-        }
-
-        avoidList := make([]int64, 0)
-
-        for _, v := range avoid {
-            avoidList = append(avoidList, v.Subject1.Int64)
-            avoidList = append(avoidList, v.Subject2.Int64)
-            avoidList = append(avoidList, v.Subject3.Int64)
-            avoidList = append(avoidList, v.Subject4.Int64)
-        }
-
-        pad := 16 - len(avoidList)
-
-        for range pad {
-            avoidList = append(avoidList, int64(0))
-        }
-
-        board, err := s.appcfg.database.GetBoardForGame(ctx, database.GetBoardForGameParams{
-            Uid: uid,
-            ID: avoidList[0],
-            ID_2: avoidList[1],
-            ID_3: avoidList[2],
-            ID_4: avoidList[3],
-            ID_5: avoidList[4],
-            ID_6: avoidList[5],
-            ID_7: avoidList[6],
-            ID_8: avoidList[7],
-            ID_9: avoidList[8],
-            ID_10: avoidList[9],
-            ID_11: avoidList[10],
-            ID_12: avoidList[11],
-            ID_13: avoidList[12],
-            ID_14: avoidList[13],
-            ID_15: avoidList[14],
-            ID_16: avoidList[15],
-        })
-        if err != nil {
-            s.log.Error("Error retreiving subjects", "err",err)
-            return nil, 0, fmt.Errorf(INTERNAL_ERROR)
-        }
-
-        populatedBoard, err := s.appcfg.database.PopulateSubjects(ctx, database.PopulateSubjectsParams{
-            ID: board.Subject1.Int64,
-            ID_2: board.Subject2.Int64,
-            ID_3: board.Subject3.Int64,
-            ID_4: board.Subject4.Int64,
-        })
-
-        g = game.Create(populatedBoard)
-
-        tx, err := s.appcfg.connection.BeginTx(ctx, nil)
-        if err != nil {
-            s.log.Error("Error creating tx", "err", err)
-            return nil, 0, fmt.Errorf(INTERNAL_ERROR)
-        }
-
-        qtx := s.appcfg.database.WithTx(tx)
-
-        id, err := qtx.SaveNewGame(ctx, database.SaveNewGameParams{
-            Active: sql.NullBool{ Bool: true, Valid: true },
-            Start: sql.NullInt64{ Int64: time.Now().UTC().UnixMilli(), Valid: true },
-        })
-
-        if err != nil {
-            s.log.Error("Error creating game", "err", err)
-            tx.Rollback()
-            return nil, 0, fmt.Errorf(INTERNAL_ERROR)
-        }
-
-        err = qtx.SaveUserToGame(ctx, database.SaveUserToGameParams{ Uid: uid, Gid: id })
-        if err != nil {
-            s.log.Error("Error saving user to game", "err", err)
-            tx.Rollback()
-            return nil, 0, fmt.Errorf(INTERNAL_ERROR)
-        }
-
-        err = qtx.SaveBoardToGame(ctx, database.SaveBoardToGameParams{
-            Bid: sql.NullInt64{ Int64: board.ID, Valid: true },
-            ID: id,
-        })
-        if err != nil {
-            s.log.Error("Error saving board to game", "err", err)
-            tx.Rollback()
-            return nil, 0, fmt.Errorf(INTERNAL_ERROR)
-        }
-
-        err = tx.Commit()
-        if err != nil {
-            s.log.Error("Error committing tx", "tx", tx, "err", err)
-            tx.Rollback()
             return nil, 0, fmt.Errorf(INTERNAL_ERROR)
         }
 
@@ -384,45 +270,7 @@ func (s *Server) UpdateGame(w http.ResponseWriter, r *http.Request) error {
     d.mch <- game.Move{ Words: body.Words }
     status := <- d.sch
 
-    switch status.Status.Status() {
-    case game.Playing:
-        s.appcfg.database.UpdateGameTurns(r.Context(), database.UpdateGameTurnsParams{
-            ID: int64(body.Gid),
-            Wrong: sql.NullInt64{ Int64: int64(d.game.Metadata.WrongTurns), Valid: true },
-            Turns: sql.NullInt64{ Int64: int64(d.game.Metadata.TotalTurns), Valid: true },
-        }) 
-    case game.Win:
-        s.appcfg.database.UpdateGameStatus(r.Context(), database.UpdateGameStatusParams{
-            ID: int64(body.Gid),
-            End: sql.NullInt64{ Int64: int64(time.Now().UTC().UnixMilli()), Valid: true },
-            Active: sql.NullBool{ Bool: false, Valid: true },
-            Win: sql.NullBool{ Bool: true, Valid: true },
-        })
-    case game.Lose:
-        s.appcfg.database.UpdateGameStatus(r.Context(), database.UpdateGameStatusParams{
-            ID: int64(body.Gid),
-            End: sql.NullInt64{ Int64: int64(time.Now().UTC().UnixMilli()), Valid: true },
-            Active: sql.NullBool{ Bool: false, Valid: true },
-            Win: sql.NullBool{ Bool: false, Valid: true },
-        })
-    default:
-        s.appcfg.database.UpdateGameTurns(r.Context(), database.UpdateGameTurnsParams{
-            ID: int64(body.Gid),
-            Turns: sql.NullInt64{ Int64: int64(d.game.Metadata.TotalTurns), Valid: true },
-            Wrong: sql.NullInt64{ Int64: int64(d.game.Metadata.WrongTurns), Valid: true },
-        })
-    }
-
-    subjects := make([]GameResponseSubject, 0)
-
-    if status.Status.Metadata.Correct {
-        for _, v := range d.game.CompletedSubjects {
-            subjects = append(subjects, GameResponseSubject{
-                Id: v,
-                Name: d.game.Subjects[v].Name,
-            }) 
-        }
-    }
+    subjects := s.storage.UpdateGameWithContext(r.Context(), int64(body.Gid), status, d.game)
 
     gr := &GameResponse{
         GameId: body.Gid,
@@ -512,20 +360,17 @@ func (s *Server) ReportBug(w http.ResponseWriter, r *http.Request) error {
         Steps string `json:"steps"`
     }
 
-    user, _ := s.appcfg.database.GetUser(r.Context(), r.Context().Value("username").(string))
-
-    defer r.Body.Close()
-
     data, err := decode[Body](r)
-    err = s.appcfg.database.ReportBug(r.Context(), database.ReportBugParams{
-        Problem: data.Problem,
-        Result: data.Result,
-        Steps: data.Steps,
-        Uid: user.ID,
-    })
-
     if err != nil {
-        s.log.Error("reporting bug", "err", err)
+        r.Body.Close()
+        return fmt.Errorf(INTERNAL_ERROR);
+    }
+
+    r.Body.Close()
+
+    err, user := s.storage.StoreBugReportWithContext(r.Context(), r.Context().Value("username").(string), data.Problem, data.Result, data.Steps)
+    if err != nil {
+        return fmt.Errorf(INTERNAL_ERROR);
     }
 
     e := Email{
@@ -830,32 +675,16 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) error {
        return fmt.Errorf(MISSING_PARAMS_ERROR)
     }
 
-    existingUser, err := s.appcfg.database.GetUser(r.Context(), body.Username)
-    if err != nil && err != sql.ErrNoRows {
-        s.log.Error("sql err", "err", err)
-        return fmt.Errorf(INTERNAL_ERROR)
-    }
-
-    if existingUser.Username != "" {
-        return fmt.Errorf(USERNAME_EXISTS_ERROR)
-    }
-
     hashPass, err := s.hasher.EncodeFromString(body.Password)
     if err != nil {
         s.log.Error("Encoding Password", "password", body.Password)
         return fmt.Errorf(INTERNAL_ERROR)
     }
 
-    validbytes := make([]byte, 32)
-    rand.Read(validbytes)
-    validToken := base64.URLEncoding.EncodeToString(validbytes)[:16]
-
-    err = s.appcfg.database.SaveUser(r.Context(), database.SaveUserParams{
-        Username: body.Username,
-        Email: body.Email,
-        Password: hashPass,
-        ValidToken: sql.NullString{ String: validToken, Valid: true },
-    })
+    err, validToken := s.storage.NewUserWithContext(r.Context(), body.Email, body.Username, hashPass)
+    if err != nil {
+        return err
+    }
 
     e := Email{
         From: s.appcfg.config.Email.From,
@@ -877,35 +706,17 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (s *Server) ValidateRegistration(w http.ResponseWriter, r *http.Request) error {
-    validvalue := r.PathValue("validvalue")
-    user, err := s.appcfg.database.GetUserByValidToken(r.Context(), sql.NullString{
-        String: validvalue,
-        Valid: true,
-    })
-
+    err, valid, username := s.storage.ValidateNewUserWithContext(r.Context(), r.PathValue("validvalue"))
     if err != nil {
-        if err == sql.ErrNoRows {
-            http.Redirect(w, r, "/", http.StatusSeeOther)
-            return nil
-        } else {
-            s.log.Error("checking valid token", "token", validvalue, "err", err)
-            return fmt.Errorf(INTERNAL_ERROR)
-        }
+        return err;
     }
 
-    if user.Username != "" {
-        err = s.appcfg.database.ValidateUser(r.Context(), user.Username)
-
-        if err != nil {
-            s.log.Error("validating user", "user", user.Username, "err", err)
-            return fmt.Errorf(INTERNAL_ERROR)
-        }
-
-        s.setTokens(w, r, user.Username)
+    if valid {
+        s.setTokens(w, r, username)
         http.Redirect(w, r, "/game", http.StatusSeeOther)
         return nil
     }
-
+    
     http.Redirect(w, r, "/", http.StatusSeeOther)
     return nil
 }
