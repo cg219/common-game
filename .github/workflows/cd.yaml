@@ -1,6 +1,7 @@
 name: Continuous Deployment
 
 on:
+  workflow_dispatch:
   push:
     branches: main
 
@@ -63,4 +64,9 @@ jobs:
           tags: tag:ci
       - name: Connect and Update
         run: |
-          ssh ${{ secrets.USER }}@${{ secrets.HOST }} "cd projects && cd common-game && git pull && docker stack deploy -c stack.yaml commongame && exit"
+          ssh -o "StrictHostKeyChecking no" ${{ secrets.USER }}@${{ secrets.HOST }} "
+            cd projects/common-game
+            git pull
+            docker stack deploy -c stack.yaml commongame
+            exit
+          "
